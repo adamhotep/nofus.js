@@ -12,7 +12,7 @@
 // All items live in this object, though some are cloned outside it.
 const nf = { GM: {}, addon: {} };
 
-nf.version = '0.2.20240215.0';
+nf.version = '0.2.20240215.1';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -83,9 +83,9 @@ Object.keys(nf.logLevels).forEach(type => {
 });
 
 
-// Get UserScript metadata for given key (as an array)
-// Usage: nf.GM.getMetas(string key) -> string[] | null 	{{{
-nf.GM.getMetas = key => {
+// Get UserScript metadata for given key with optional value regex (as an array)
+// Usage: nf.GM.getMetas(string key[, RegExp matcher) -> string[] | null 	{{{
+nf.GM.getMetas = (key, matcher) => {
   // Don't forget you need `@grant GM.info` and/or `@grant GM_info`
   // Also note that GM.info/GM_info supports direct querying on some items,
   // see https://wiki.greasespot.net/GM.info
@@ -97,14 +97,18 @@ nf.GM.getMetas = key => {
     scriptMetaStr = GM_info.scriptMetaStr;
   } else { return null }
   const s = '[\\x20\\t]', S = '[^\\x20\\t]';	// like \s but doesn't match \n
-  return scriptMetaStr
+  const values = scriptMetaStr
     .match(RegExp(`(?<=^\\s*//+${s}*@${key}${s}+)${S}.*?(?=\\s*$)`, 'gm'));
+  if (! (matcher instanceof RegExp) || values == null) return values;
+  let matches = [];
+  values.forEach(v => { if (exec(matcher, v)) matches.push(v) });
+  return matches.length ? matches : null;
 };	// end nf.GM.getMetas() }}}
 
-// Get UserScript metadata for given key (first match only)
+// Get UserScript metadata for given key with optional value regex (first match)
 // Usage: nf.GM.getMeta(string key) -> string | undefined	{{{
-nf.GM.getMeta = key => {
-  const value = nf.GM.getMetas(key);
+nf.GM.getMeta = (key, matcher) => {
+  const value = nf.GM.getMetas(key, matcher));
   if (value) { return value[0]; }
   return undefined;
 };	// end nf.GM.getMeta() }}}
@@ -193,7 +197,7 @@ const w$ = nf.wait$;	// alias
 
 
 // Add to or else make and install a new CSS <style> element
-// Usage: nf.style$(string css[, HTMLDocument|HTMLStyleElement where]) -> HTMLElement	{{{
+// Usage: nf.style$(string css[, HTMLDocument | HTMLStyleElement where]) -> HTMLElement	{{{
 nf.style$ = (css, where = document) => {
   if (where instanceof HTMLStyleElement) {
     where.textContent += css;
@@ -514,7 +518,7 @@ nf.hash_hex = (str, seed) => {
 
 
 // Count the direct ("own") keys of an object or else return undefined
-// Usage: nf.objKeys(object obj) -> number|undefined	{{{
+// Usage: nf.objKeys(object obj) -> number | undefined	{{{
 // via https://stackoverflow.com/a/32108184/519360, adapted to count
 nf.objKeys = obj => {
   if (obj == null || typeof obj != "object") return undefined;

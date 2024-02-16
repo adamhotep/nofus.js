@@ -108,7 +108,7 @@ nf.GM.getMetas = (key, matcher) => {
 // Get UserScript metadata for given key with optional value regex (first match)
 // Usage: nf.GM.getMeta(string key) -> string | undefined	{{{
 nf.GM.getMeta = (key, matcher) => {
-  const value = nf.GM.getMetas(key, matcher));
+  const value = nf.GM.getMetas(key, matcher);
   if (value) {
     // re-run the regex in order to pick up the capture groups
     if (matcher instanceof RegExp) { return matcher.exec(value[0]) }

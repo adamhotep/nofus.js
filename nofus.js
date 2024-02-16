@@ -12,7 +12,7 @@
 // All items live in this object, though some are cloned outside it.
 const nf = { GM: {}, addon: {} };
 
-nf.version = '0.2.20240215.1';
+nf.version = '0.2.20240215.2';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -101,7 +101,7 @@ nf.GM.getMetas = (key, matcher) => {
     .match(RegExp(`(?<=^\\s*//+${s}*@${key}${s}+)${S}.*?(?=\\s*$)`, 'gm'));
   if (! (matcher instanceof RegExp) || values == null) return values;
   let matches = [];
-  values.forEach(v => { if (exec(matcher, v)) matches.push(v) });
+  values.forEach(v => { if (matcher.exec(v)) matches.push(v) });
   return matches.length ? matches : null;
 };	// end nf.GM.getMetas() }}}
 
@@ -109,7 +109,11 @@ nf.GM.getMetas = (key, matcher) => {
 // Usage: nf.GM.getMeta(string key) -> string | undefined	{{{
 nf.GM.getMeta = (key, matcher) => {
   const value = nf.GM.getMetas(key, matcher));
-  if (value) { return value[0]; }
+  if (value) {
+    // re-run the regex in order to pick up the capture groups
+    if (matcher instanceof RegExp) { return matcher.exec(value[0]) }
+    return value[0];
+  }
   return undefined;
 };	// end nf.GM.getMeta() }}}
 

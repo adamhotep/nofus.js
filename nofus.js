@@ -12,7 +12,7 @@
 // All items live in this object, though some are cloned outside it.
 const nf = { GM: {}, addon: {} };
 
-nf.version = '0.2.20240215.2';
+nf.version = '0.2.20240215.3';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -98,7 +98,7 @@ nf.GM.getMetas = (key, matcher) => {
   } else { return null }
   const s = '[\\x20\\t]', S = '[^\\x20\\t]';	// like \s but doesn't match \n
   const values = scriptMetaStr
-    .match(RegExp(`(?<=^\\s*//+${s}*@${key}${s}+)${S}.*?(?=\\s*$)`, 'gm'));
+    .match(RegExp(`(?<=^\\s*//+${s}*@${key}${s}+)${S}[^\\n]*?(?=\\s*$)`, 'gm'));
   if (! (matcher instanceof RegExp) || values == null) return values;
   let matches = [];
   values.forEach(v => { if (matcher.exec(v)) matches.push(v) });

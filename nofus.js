@@ -16,7 +16,7 @@
 // All items live in this object, though some are cloned outside it.
 const nf = { GM: {}, addon: {} };
 
-nf.version = '0.2.20240302.0';
+nf.version = '0.2.20240302.1';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -214,7 +214,7 @@ nf.style$ = (css, where = document) => {
     return where;
   }
   return where.head.appendChild(
-    $html("style", { type: "text/css", textContent: css })
+    nf.$html("style", { type: "text/css", textContent: css })
   );
 }	// end nf.style$()	}}}
 
@@ -456,7 +456,7 @@ nf.sec2units = (seconds = 0) => {
 // Convert colon-delimited time string (Y:D:H:M:S) to seconds
 // nf.time2sec(string time) -> number	{{{
 nf.time2sec = time => {
-  const parts = time.split(":").reverse();
+  const parts = time.toString().split(":").reverse();
   let seconds = 0;
   if (parts.length > 5) { throw new SyntaxError("Too many parts in time!"); }
   if (parts.length == 5) { seconds += y * parts[4]; }
@@ -473,7 +473,7 @@ nf.units2sec = time => {
   const y = 31536000, mo = 2628000, d = 86400, h = 3600, m = 60;
 
   const num = `-? [0-9]+ (?: \\. [0-9]* )? (?: e [+-]?[0-9]+ )?`;
-  const parts = time.match(nf.regex(	// spelled, like 1h 23m 45s
+  const parts = time.toString().match(nf.regex(	// spelled, like 1h 23m 45s
   ` ^
     (?: (?<years>   ${num} ) \\s* y (?: (?: ea )? r s? )?	,? \\s* )?
     (?: (?<months>  ${num} ) \\s* mo (?: nth )? s?		,? \\s* )?

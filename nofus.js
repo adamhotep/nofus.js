@@ -3,6 +3,10 @@
  * Functions ending in a dollar sign (`$`) mean the first arg is a CSS selector.
  * Functions starting with a dollar sign create DOM objects but don't take CSS.
  *
+ * A small number of utility functions have "aliases" that exist outside the nf
+ * object for easy access. One function can be "installed" into Node.prototype.
+ * Search this file for `alias` or `install` to find them.
+ *
  * Nofus is copyright 2017+ by Adam Katz. Apache License 2.0
  * https://github.com/adamhotep/nofus.js
  */
@@ -12,22 +16,24 @@
 // All items live in this object, though some are cloned outside it.
 const nf = { GM: {}, addon: {} };
 
-nf.version = '0.2.20240215.3';
+nf.version = '0.2.20240302.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
-// Usage: nf.compareVersions(string versionA, string versionB, string cmp) -> boolean	{{{
-// True when versionA matches cmp with versionB. cmp defaults to > (newer).
+// nf.compareVersions(string versionA, string versionB, [string cmp]) -> boolean	{{{
+// True when versions compare as specified; ('2.10.4', '2.8.5', '>') is true
 // Expected version format:
+//
 //     MAJOR[.MINOR[.PATCH[.MORE...]]][-PRERELEASE[.MORE...]][+BUILD]
+//
 // We support an arbitrary number of dotted things,
-// then an optional prerelease (with an arbitrary number of dotted things)
-// then an optional build number (which we ignore)
+// then an optional hyphen and prerelease (with its own dotted things),
+// then an optional plus and build number (which we ignore).
+// Pre-releases are OLDER than (non-pre-)releases at the same version.
 // See also Semantic Versioning 2.0.0, https://semver.org
 // Unlike semver, we support ANY string, comparing string length then lexically.
-// Pre-releases are OLDER than (non-pre-)releases at the same version.
 nf.compareVersions = (versionA, versionB, cmp = ">") => {
-  const t = true, f = false;
+  let t = true, f = false;
   if (cmp.startsWith("<")) { t = f; f = true }
   else if (cmp == "==") { t = f }
   else if (cmp == "!=") { f = t }
@@ -36,8 +42,8 @@ nf.compareVersions = (versionA, versionB, cmp = ">") => {
   const vb = versionB.toString().replace(/\+.*/, "").split(".");
   const len = va.length > vb.length ? va.length : vb.length;
   for (let i = 0; i < len; i++) {
-    const a = va[i]?.split("-") || [ 0 ]; 	// [version, pre-release]
-    const b = vb[i]?.split("-") || [ 0 ]; 	// [version, pre-release]
+    const a = va[i]?.split("-") || [ 0 ];	// [version, pre-release]
+    const b = vb[i]?.split("-") || [ 0 ];	// [version, pre-release]
     if (b[0].length > a[0].length) { return f }
     if (a[0].length > b[0].length || a[0] > b[0]) { return t }
     // pre-releases are *older* than same-number (non-pre-)releases
@@ -52,7 +58,7 @@ nf.compareVersions = (versionA, versionB, cmp = ">") => {
 
 
 // Log if logLevel is sufficient. Includes type, time, logo, string substitution
-// Usage: nf._log(string type, string message[, * substitution...])	{{{
+// nf._log(string type, string message, [* substitution...]) -> undefined	{{{
 //
 // Type is one of debug, assert, log (default), info, warn, error. See also
 // https://developer.mozilla.org/en-US/docs/Web/API/console#using_string_substitutions
@@ -72,19 +78,19 @@ nf._log = (type, ...args) => {
 }	// end nf._log()	}}}
 nf.logLevel = 'info';
 nf.logLevels = { debug: 0, assert: 1, log: 2, info: 3, warn: 4, error: 5 };
-// Usage: nf.debug(string message[, * substitution...])
-// Usage: nf.assert(string message[, * substitution...])
-// Usage: nf.log(string message[, * substitution...])
-// Usage: nf.info(string message[, * substitution...])
-// Usage: nf.warn(string message[, * substitution...])
-// Usage: nf.error(string message[, * substitution...])
+// nf.debug(string message, [* substitution...]) -> undefined
+// nf.assert(string message, [* substitution...]) -> undefined
+// nf.log(string message, [* substitution...]) -> undefined
+// nf.info(string message, [* substitution...]) -> undefined
+// nf.warn(string message, [* substitution...]) -> undefined
+// nf.error(string message, [* substitution...]) -> undefined
 Object.keys(nf.logLevels).forEach(type => {
   nf[type] = (...args) => { return nf._log(type, ...args); }
 });
 
 
 // Get UserScript metadata for given key with optional value regex (as an array)
-// Usage: nf.GM.getMetas(string key[, RegExp matcher) -> string[] | null 	{{{
+// nf.GM.getMetas(string key, [RegExp matcher]) -> string[] | null	{{{
 nf.GM.getMetas = (key, matcher) => {
   // Don't forget you need `@grant GM.info` and/or `@grant GM_info`
   // Also note that GM.info/GM_info supports direct querying on some items,
@@ -106,7 +112,7 @@ nf.GM.getMetas = (key, matcher) => {
 };	// end nf.GM.getMetas() }}}
 
 // Get UserScript metadata for given key with optional value regex (first match)
-// Usage: nf.GM.getMeta(string key) -> string | undefined	{{{
+// nf.GM.getMeta(string key, [RegExp matcher]) -> string | undefined	{{{
 nf.GM.getMeta = (key, matcher) => {
   const value = nf.GM.getMetas(key, matcher);
   if (value) {
@@ -118,8 +124,8 @@ nf.GM.getMeta = (key, matcher) => {
 };	// end nf.GM.getMeta() }}}
 
 
-// Returns object(s) matched as queried via CSS selector
-// Usage: nf.query$(string css[, HTMLElement scope][, boolean list]) -> HTMLElement | HTMLElement[]	{{{
+// Returns HTML element(s) matched as queried via CSS selector
+// nf.query$(string css, [HTMLElement scope], [boolean list]) -> HTMLElement | HTMLElement[]	{{{
 // q$(css)           ->  document.querySelector(css)
 // q$(css, elem)     ->  elem.querySelector(css)
 // q$(css, true)     ->  document.querySelectorAll(css)
@@ -138,7 +144,7 @@ const q$ = nf.query$;	// alias
 
 
 // Wait for HTML elements matching css, run given function on them upon loading
-// Usage: nf.wait$(string css, function action[, HTMLElement scope][, object options]) -> MutationObserver	{{{
+// nf.wait$(string css, function action, [HTMLElement scope], [object options]) -> MutationObserver	{{{
 // Trigger `action(element)` for each match of css even when dynamically loaded.
 // This returns the observer so you can do `w = nf.wait$(...)`
 // and you can run `w.disconnect()` to disable it later.
@@ -200,8 +206,8 @@ nf.wait$ = (css, action, scope = document, options = { now:1 }) => {
 const w$ = nf.wait$;	// alias
 
 
-// Add to or else make and install a new CSS <style> element
-// Usage: nf.style$(string css[, HTMLDocument | HTMLStyleElement where]) -> HTMLElement	{{{
+// Add to or else make and insert a new CSS <style> element
+// nf.style$(string css, [HTMLDocument|HTMLStyleElement where]) -> HTMLElement	{{{
 nf.style$ = (css, where = document) => {
   if (where instanceof HTMLStyleElement) {
     where.textContent += css;
@@ -214,7 +220,7 @@ nf.style$ = (css, where = document) => {
 
 
 // Make an HTML node. Optional subsequent node+attr pairs become its children.
-// Usage: nf.$html(string nodeName[, object attributes] ...) -> HTMLElement	{{{
+// nf.$html(string nodeName, [object attributes] ...) -> HTMLElement	{{{
 // TODO: is this a safe way to deep-clone an element? That wasn't the intent...
 // NOTE: attributes are JavaScript, not HTML:
 // * nodeName is actually optional if attributes.nodeName exists
@@ -249,7 +255,7 @@ const $html = nf.$html;	// alias
 
 
 // Make a text fragment
-// Usage: nf.$text(string text) -> Text 	{{{
+// nf.$text(string text) -> Text	{{{
 nf.$text = text => {
   return document.createTextNode(text);
 }	// end nf.$text()	}}}
@@ -257,13 +263,13 @@ const $txt = nf.$text;	// alias
 
 
 // Insert given element after reference element, like ref.insertBefore(...)
-// Usage: nf.insertAfter(HTMLElement add, HTMLElement ref) -> add	{{{
+// nf.insertAfter(HTMLElement add, HTMLElement ref) -> HTMLElement	{{{
 nf.insertAfter = (add, ref) => {
   return ref.parentElement.insertBefore(add, ref.nextSibling);
 }	// end nf.insertAfter()	}}}
 
 // Install as Node.prototype.insertAfter() when invoked
-// Usage: nf.installInsertAfter() -> undefined	{{{
+// nf.installInsertAfter() -> undefined	{{{
 nf.installInsertAfter = () => {
   // push that right into the Node prototype
   if (typeof Node.prototype.insertAfter == 'undefined') {
@@ -275,20 +281,26 @@ nf.installInsertAfter = () => {
 
 
 // RegExp() wrapper that accepts perl's `x` flag (purge white space & #comments)
-// Usage: nf.regex(string pattern[, string flags]) -> RegExp	{{{
+// nf.regex(string pattern, [string flags]) -> RegExp	{{{
 // REMEMBER THAT PATTERN IS A STRING! Double-escapes needed!
+// Differences with perl:
+// * Javascript does not support \Q...\E (and I'm not implementing that)
+// * Unescaped spaces are stripped from character classes (more like `xx`)
+// * Line breaks _are_ stripped from character classes (unlike `xx`)
+// * TODO? break out x (literal spaces remain in char classes) and xx (not)
+// * TODO? retain unescaped # or spaces in character classes (unless `xx`)
 nf.regex = nf.regExp = (pattern, flags = "") => {
   if (flags.includes("x")) {
-    flags = flags.replace(/x/g, "");
-    // This monster negative lookbehind prevents matching escaped `#` characters
-    pattern = pattern.replace(/(?<!(?<!\\)(?:\\\\)*\\)#.*$|\s+/mg, "");
+    flags = flags.replace(/x+/g, "");
+    // This negative lookbehind prevents pruning escaped `#` and space chars
+    pattern = pattern.replace(/(?<!(?<!\\)(?:\\\\)*\\)(?:#.*$|\s+)/mg, "");
   }
   return RegExp(pattern, flags);
 }	// end nf.regex()	}}}
 
 
 // A nearly-complete C-style sprintf implementation
-// Usage: nf.sprintf(string template[, * substitutions...]) -> string	{{{
+// nf.sprintf(string template, [* substitutions...]) -> string	{{{
 // I've built this mostly from perl's sprintf man page,
 // https://perldoc.perl.org/functions/sprintf
 // Unsupported:
@@ -375,19 +387,20 @@ nf.sprintf = (template, ...substitutions) => {
 
 
 // Round a number to a given precision (default is 0, an integer)
-// Usage: nf.round(number num[, integer decimals]) -> number	{{{
+// nf.round(number num, [integer decimals]) -> number	{{{
 nf.round = (num, decimals = 0) => {
   decimals = 10 ** decimals;
   return parseInt(num * decimals + 0.5) / decimals;
 }	// end nf.round()	}}}
 
 // Round to units (English or metric or binary/bytes)
-// Usage: nf.round_units(number num[, number precision][, string type]) -> String	{{{
-// * English uses capital K for thousands and B for billions
-// * Metric uses lowercase k for thousands and G for giga (billions)
-// * Fractional is metric including fractional units (m for thousandths)
-// * Bytes is Metric but in blocks of 1024 rather than 1000
-nf.round_units = (num, precision = 3, type = 'english') => {
+// nf.round_units(number num, [number precision], [string type]) -> String	{{{
+// Types are as follows:
+// * 'English' uses capital K for thousands and B for billions
+// * 'Metric' uses lowercase k for thousands and G for giga (billions)
+// * 'Fractional' is metric including fractional units (m for thousandths)
+// * 'Bytes' is Metric but in blocks of 1024 rather than 1000
+nf.round_units = (num, precision = 3, type = 'English') => {
   if (num === 0) return '0';
   let sign = '';
   if (num < 0) { sign = '-'; num *= -1; }
@@ -396,12 +409,13 @@ nf.round_units = (num, precision = 3, type = 'english') => {
     type = precision;
     precision = tmp;
   }
-  type = type.substr(0, 1).toLowerCase(); // just the first character
+  type = type.substr(0, 1).toUpperCase(); // just the first character
   let frac = 0;
-  if (type == 'f') { frac = -8; type = 'b'; }
-  const base = (type == 'b' ? 1024 : 1000);
-  let sizes = 'y,z,a,f,p,n,\u03bc,m,,k,M,G,T,P,E,Z,Y'.split(','); // U+03bc = mu
-  if (type == 'e') { sizes[9] = 'K'; sizes[11] = 'B'; }
+  if (type == 'F') { frac = -8; type = 'B'; }
+  const base = (type == 'B' ? 1024 : 1000);
+  let sizes = ['y','z','a','f','p','n','\u03bc', // U+03bc = mu
+    'm','','k','M','G','T','P','E','Z','Y'];
+  if (type == 'E') { sizes[9] = 'K'; sizes[11] = 'B'; }
   let power = Math.floor(Math.log(num) / Math.log(base));
   num /= base**power;
   if (frac <= power && power <= 8) {
@@ -413,7 +427,7 @@ nf.round_units = (num, precision = 3, type = 'english') => {
 
 
 // Convert seconds to colon-delimited time string (Y:D:HH:MM:SS.SSS, e.g. 4:20)
-// Usage: nf.sec2time(number seconds[, boolean units]) -> string	{{{
+// nf.sec2time(number seconds, [boolean units]) -> string	{{{
 // (See nf.sec2units below for what happens when `units` is defined)
 nf.sec2time = (seconds = 0, units = undefined) => {
   const y = 31536000, d = 86400, h = 3600, m = 60;
@@ -434,17 +448,17 @@ nf.sec2time = (seconds = 0, units = undefined) => {
 }	// end nf.sec2time()	}}}
 
 // Convert seconds to unit-based time string (Yy Dd Hh Mm S.SSSs, e.g. 3d 16m)
-// Usage: nf.sec2units(number seconds) -> string	{{{
+// nf.sec2units(number seconds) -> string	{{{
 nf.sec2units = (seconds = 0) => {
   return nf.sec2time(seconds, 1);
 }	// end nf.sec2units()	}}}
 
 // Convert colon-delimited time string (Y:D:H:M:S) to seconds
-// Usage: nf.time2sec(string time) -> number	{{{
+// nf.time2sec(string time) -> number	{{{
 nf.time2sec = time => {
   const parts = time.split(":").reverse();
   let seconds = 0;
-  if (parts.length > 5) { return undefined; }	// too many parts!
+  if (parts.length > 5) { throw new SyntaxError("Too many parts in time!"); }
   if (parts.length == 5) { seconds += y * parts[4]; }
   if (parts.length >= 4) { seconds += d * parts[3]; }
   if (parts.length >= 3) { seconds += h * parts[2]; }
@@ -453,7 +467,8 @@ nf.time2sec = time => {
 }	// end nf.time2sec()	}}}
 
 // Convert unit-based time (Yy Dd Hh Mm S.SSSs, e.g. 3d 16m) to seconds
-// Usage: nf.units2sec(string time) -> number	{{{
+// nf.units2sec(string time) -> number	{{{
+// This can't account for leap years since it doesn't know the relevant year.
 nf.units2sec = time => {
   const y = 31536000, mo = 2628000, d = 86400, h = 3600, m = 60;
 
@@ -469,35 +484,35 @@ nf.units2sec = time => {
     (?: (?<seconds> ${num} ) \\s* (?: s (?: ec (?: ond )? s? )? \\b | $ ) )?
     \\s* $
   `, "xi"));
-  if (parts == null) { return undefined; }
+  if (parts == null) { throw new SyntaxError("Invalid time string"); }
 
   return (parts.groups.years	?? 0) * 31536000	// 1y = 365.00d
        + (parts.groups.months	?? 0) * 2628000 	// 1mo = y/12 = 30.417d
        + (parts.groups.weeks	?? 0) * 604800  	// 1w = 7*d
-       + (parts.groups.days 	?? 0) * 86400		// 1d = 24*h
+       + (parts.groups.days	?? 0) * 86400		// 1d = 24*h
        + (parts.groups.hours	?? 0) * 3600
        + (parts.groups.minutes	?? 0) * 60
-       + (parts.groups.seconds	?? 0) * 1;
+       + (parts.groups.seconds	?? 0);
 }	// end nf.units2sec()	}}}
 
 // Convert various time formats to either seconds or colon-delimited time string
-// Usage: nf.timecalc(string|number time) -> number | string	{{{
+// nf.timecalc(string|number time) -> number | string	{{{
 nf.timecalc = time => {
 
-  // number -> colon-delimited, e.g. 12345 -> "20:34"
+  // number -> colon-delimited, e.g. 1234 -> "20:34"
   if (!isNaN(time) && !isNaN(parseFloat(time))) { return nf.sec2time(time); }
 
-  // colon-delimited -> number, e.g. "20:34" -> 12345
+  // colon-delimited -> number, e.g. "20:34" -> 1234
   if (time.match(/^[0-9.]*:[0-9.:]*$/)) { return nf.time2sec(time); }
 
-  // unit-marked -> number, e.g. "20m 34s" -> 12345
+  // unit-marked -> number, e.g. "20m 34s" -> 1234
   return nf.units2sec(time);
 
 };	// end nf.timecalc()	}}}
 
 
 // Fast non-cryptographic checksum hasher (Fowler-Noll-Vo)
-// Usage: nf.hash(string str) -> number 	{{{
+// nf.hash(string str) -> number	{{{
 // Fowler-Noll-Vo (FNV-1a) is a FAST simple non-cryptographic hashing function.
 // https://en.wikipedia.org/wiki/Fowler-Noll-Vo_hash_function
 // See https://stackoverflow.com/a/22429679/519360 and especially its comments.
@@ -515,14 +530,14 @@ nf.hash = (str, seed = 0x811c9dc5) => {
 }	// end nf.hash()	}}}
 
 // Fast non-cryptographic checksum hasher (Fowler-Noll-Vo) as hex string
-// Usage: nf.hash_hex(string str) -> string 	{{{
+// nf.hash_hex(string str) -> string	{{{
 nf.hash_hex = (str, seed) => {
   return nf.hash(str, seed).toString(16);
 }	// end nf.hash_hex()	}}}
 
 
 // Count the direct ("own") keys of an object or else return undefined
-// Usage: nf.objKeys(object obj) -> number | undefined	{{{
+// nf.objKeys(object obj) -> number | undefined	{{{
 // via https://stackoverflow.com/a/32108184/519360, adapted to count
 nf.objKeys = obj => {
   if (obj == null || typeof obj != "object") return undefined;
@@ -533,12 +548,12 @@ nf.objKeys = obj => {
   return n
 }	// end nf.objKeys()	}}}
 // Determine if something is an empty object  (obj == {}) does NOT work)
-// Usage: nf.objEmpty(object obj) -> boolean	{{{
+// nf.objEmpty(object obj) -> boolean	{{{
 nf.objEmpty = obj => { return nf.objKeys(obj) == 0 }
 // end of nf.objEmpty() }}}
 
 // Simple sleep function, either async or else wrapping a function
-// Usage: nf.sleep(number ms[, function action[, * args...]]) -> Promise | undefined	{{{
+// nf.sleep(number ms, [function action, [* args...]]) -> Promise | undefined	{{{
 // invoked as either:   await nf.sleep(time);  // only in async functions
 //                or:   function foo() {...}; nf.sleep(time, foo);
 nf.sleep = (ms, action, ...args) => {

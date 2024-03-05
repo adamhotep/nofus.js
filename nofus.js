@@ -112,7 +112,7 @@ nf.GM.getMetas = (key, matcher) => {
 };	// end nf.GM.getMetas() }}}
 
 // Get UserScript metadata for given key with optional value regex (first match)
-// nf.GM.getMeta(string key, [RegExp matcher]) -> string | undefined	{{{
+// nf.GM.getMeta(string key, [RegExp matcher]) -> string | string[] | undefined	{{{
 nf.GM.getMeta = (key, matcher) => {
   const value = nf.GM.getMetas(key, matcher);
   if (value) {
@@ -143,7 +143,7 @@ nf.query$ = function(css, scope = document, list) {
 const q$ = nf.query$;	// alias
 
 
-// Wait for HTML elements matching css, run given function on them upon loading
+// Wait for HTML elements matching CSS, run given function on them upon loading
 // nf.wait$(string css, function action, [HTMLElement scope], [object options]) -> MutationObserver	{{{
 // Trigger `action(element)` for each match of css even when dynamically loaded.
 // This returns the observer so you can do `w = nf.wait$(...)`
@@ -283,24 +283,53 @@ nf.installInsertAfter = () => {
 // RegExp() wrapper that accepts perl's `x` flag (purge white space & #comments)
 // nf.regex(string pattern, [string flags]) -> RegExp	{{{
 // REMEMBER THAT PATTERN IS A STRING! Double-escapes needed!
-// Differences with perl:
-// * Javascript does not support \Q...\E (and I'm not implementing that)
-// * Unescaped spaces are stripped from character classes (more like `xx`)
-// * Line breaks _are_ stripped from character classes (unlike `xx`)
-// * TODO? break out x (literal spaces remain in char classes) and xx (not)
-// * TODO? retain unescaped # or spaces in character classes (unless `xx`)
+// Given the `x` or `xx` flag:
+// * Perl-style comments are purged (from `#` through the next newline)
+// * white space is purged unless in a bracketed character class (see below)
+// * Within bracketed character classes like `[this #0-9]`:
+//   * Unescaped newlines (`\n`) are converted to escaped newlines (`\\n`)
+//   * Other spaces are preserved with `x` but purged with `xx` (`[this#0-9]`)
+//   * `#` is always preserved--you cannot have comments in character classes
+// Differences with Perl's implementation:
+// * JS lacks `\Q...\E` blocks, which are immune to these flags
+// * JS lacks `(?#comments)` but   ab(?#text)c   could be   `ab`/*text*/+`c`
+// * For now, you can put spaces in meta-patterns like `(? i:text)`,
+//   though this is hard to read and therefore not recommended,
+//   and this functionality may change to be more like Perl in the future
 nf.regex = nf.regExp = (pattern, flags = "") => {
   if (flags.includes("x")) {
+    let x = 1 + (flags.lastIndexOf("x") > flags.indexOf("x"));	// x=1, xx=2
     flags = flags.replace(/x+/g, "");
-    // This negative lookbehind prevents pruning escaped `#` and space chars
-    pattern = pattern.replace(/(?<!(?<!\\)(?:\\\\)*\\)(?:#.*$|\s+)/mg, "");
+    let classes = [];
+    // The negative lookbehind ensures we don't key on an escaped character.
+    // If we could define it with the `x` flag, it'd be easier to understand:
+    //     / (?<! (?<! \\ ) (?: \\ \\ )* \\ ) /x
+    // Not preceded by an odd number of escape characters (which must be ensured
+    // by a negative lookbehind within a negative lookbehind).
+    // Note: Unlike most regex engines, JS accepts variable-width lookbehinds
+    pattern = pattern
+      // set bracketed character classes aside (immunize against next replace)
+      .replace(/(?<!(?<!\\)(?:\\\\)*\\)\[[^\]]*\]/g, all => {
+        let brackets = all.replace(/\n/g, "\\n");	// escape newlines
+        if (x == 2) {	// `xx` purges unescaped spaces in bracketed classes
+          brackets = brackets.replace(/(?<!(?<!\\)(?:\\\\)*\\)\s+/g, "")
+        }
+        classes.push(brackets);
+        return `(?\u0000${classes.length - 1})`;	// set aside
+      })
+      // remove comments and spaces
+      .replace(/(?<!(?<!\\)(?:\\\\)*\\)(?:#.*$|\s+)/mg, "")
+      // return bracketed character classes
+      .replace(/\(\?\u0000([0-9]+)\)/g, (all, i) => {
+        return classes[i] || all
+      })
   }
   return RegExp(pattern, flags);
 }	// end nf.regex()	}}}
 
 
 // A nearly-complete C-style sprintf implementation
-// nf.sprintf(string template, [* substitutions...]) -> string	{{{
+// nf.sprintf(string template, [* substitution...]) -> string	{{{
 // I've built this mostly from perl's sprintf man page,
 // https://perldoc.perl.org/functions/sprintf
 // Unsupported:
@@ -387,13 +416,13 @@ nf.sprintf = (template, ...substitutions) => {
 
 
 // Round a number to a given precision (default is 0, an integer)
-// nf.round(number num, [integer decimals]) -> number	{{{
-nf.round = (num, decimals = 0) => {
-  decimals = 10 ** decimals;
-  return parseInt(num * decimals + 0.5) / decimals;
+// nf.round(number num, [integer precision]) -> number	{{{
+nf.round = (num, precision = 0) => {
+  precision = 10 ** precision;
+  return parseInt(num * precision + 0.5) / precision;
 }	// end nf.round()	}}}
 
-// Round to units (English or metric or binary/bytes)
+// Round to size units (English or metric or binary/bytes)
 // nf.round_units(number num, [number precision], [string type]) -> String	{{{
 // Types are as follows:
 // * 'English' uses capital K for thousands and B for billions
@@ -512,7 +541,7 @@ nf.timecalc = time => {
 
 
 // Fast non-cryptographic checksum hasher (Fowler-Noll-Vo)
-// nf.hash(string str) -> number	{{{
+// nf.hash(string str, [string seed]) -> number	{{{
 // Fowler-Noll-Vo (FNV-1a) is a FAST simple non-cryptographic hashing function.
 // https://en.wikipedia.org/wiki/Fowler-Noll-Vo_hash_function
 // See https://stackoverflow.com/a/22429679/519360 and especially its comments.

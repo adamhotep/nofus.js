@@ -16,7 +16,7 @@
 // All items live in this object, though some are cloned outside it.
 const nf = { GM: {}, addon: {} };
 
-nf.version = '0.2.20240302.1';
+nf.version = '0.2.20240304.1';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -179,7 +179,7 @@ nf.wait$ = (css, action, scope = document, options = { now:1 }) => {
   const actionMarker = action.name + "%" + nf.hash_hex(css + action.toString());
 
   const run = () => {
-    nf.query$(css, scope, true).forEach(elem => {
+    nf.query$(css, scope, true)?.forEach(elem => {
       // TODO: move actionMarker back to a spaced attribute to avoid with CSS?
       // That means modifying the CSS (risky!). Justify performance need first.
       if (elem.nf_found && elem.nf_found[actionMarker]) { return } // been-there

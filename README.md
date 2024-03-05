@@ -152,7 +152,7 @@ Usage: `nf.installInsertAfter()`
 
 ### nf.regex
 
-Create regular expressions more legibly. Supports a variant of Perl's `xx` modifier, allowing white space and comments for legibility and documentation.
+Create regular expressions more legibly. Supports Perl's `x` and `xx` modifiers, allowing white space and comments for legibility and documentation.
 
 Usage: `nf.regex(string pattern, [string flags])`
 
@@ -165,10 +165,7 @@ Usage: `nf.regex(string pattern, [string flags])`
     * `#` is always literal
     * `\n` is always literal
     * The `x` flag retains other spaces while `xx` removes them
-  * Differences with Perl's implementation
-    * JS lacks `\Q…\E` blocks which are immune to these flags
-    * JS lacks the `(?#comment)` notation
-    * For now, you can put spaces in meta-patterns like `(? i:text)`, though this is hard to read and therefore not recommended, and this functionality may change to be more like Perl in the future
+  * For now, you can put spaces in meta-patterns like `(? i:text)`, though this is hard to read and therefore not recommended, and this functionality may change to be more like Perl in the future
 * Returns a RegExp object
 
 This wraps the `RegExp` constructor.

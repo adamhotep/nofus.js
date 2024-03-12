@@ -16,7 +16,7 @@
 // All items live in this object, though some are cloned outside it.
 const nf = { GM: {}, addon: {} };
 
-nf.version = '0.2.20240304.1';
+nf.version = '0.2.20240311.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -586,6 +586,6 @@ nf.objEmpty = obj => { return nf.objKeys(obj) == 0 }
 // invoked as either:   await nf.sleep(time);  // only in async functions
 //                or:   function foo() {...}; nf.sleep(time, foo);
 nf.sleep = (ms, action, ...args) => {
-  if (typeof action == 'function') { return setTimeout(action, ms, ...arg); }
+  if (typeof action == 'function') { return setTimeout(action, ms, ...args); }
   return new Promise(what => setTimeout(what, ms));
 }	// end nf.sleep()	}}}

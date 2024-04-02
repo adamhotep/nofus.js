@@ -16,7 +16,7 @@
 // All items live in this object, though some are cloned outside it.
 const nf = { GM: {}, addon: {} };
 
-nf.version = '0.2.20240311.0';
+nf.version = '0.3.20240401.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -57,36 +57,33 @@ nf.compareVersions = (versionA, versionB, cmp = ">") => {
 }	// end nf.compareVersions()	}}}
 
 
-// Log if logLevel is sufficient. Includes type, time, logo, string substitution
-// nf._log(string type, string message, [* substitution...]) -> undefined	{{{
-//
-// Type is one of debug, assert, log (default), info, warn, error. See also
-// https://developer.mozilla.org/en-US/docs/Web/API/console#using_string_substitutions
-// Logs are suppressed if below nf.logLevel (see nf.logLevels below)
-//
-// The logo is defined by custom CSS in the `nf.logLogo` variable, such as
-//     nf.logLogo = `background:0/1em url("...") no-repeat; padding-left:3ex`;
-nf._log = (type, ...args) => {
-  if (nf.logLevel < nf.logLevels[type]) { return; }
-  if (typeof args[0] == "object") { args.unshift("%o"); }
-  args.splice(0, 1, "%c%s\n%c" + args[0], 'font-family:sans-serif', Date(),
-    typeof nf.logLogo == "string" ? log_logo : "");
-
-  // NOTE: the console log will cite THIS call's line number,
-  // so you might still want console.log() and friends for debugging :-(
-  console[type](...args);
-}	// end nf._log()	}}}
-nf.logLevel = 'info';
-nf.logLevels = { debug: 0, assert: 1, log: 2, info: 3, warn: 4, error: 5 };
+// Log if logLevel is sufficient. Includes time, logo, string substitution
+// nf.trace(string message, [* substitution...]) -> undefined
 // nf.debug(string message, [* substitution...]) -> undefined
-// nf.assert(string message, [* substitution...]) -> undefined
 // nf.log(string message, [* substitution...]) -> undefined
 // nf.info(string message, [* substitution...]) -> undefined
 // nf.warn(string message, [* substitution...]) -> undefined
-// nf.error(string message, [* substitution...]) -> undefined
+// nf.error(string message, [* substitution...]) -> undefined	{{{
+//
+// https://developer.mozilla.org/en-US/docs/Web/API/console#using_string_substitutions
+// Logs are suppressed if below nf.logLevel (see nf.logLevels)
+//
+// The logo is defined by custom CSS in the `nf.logLogo` variable, such as
+//     nf.logLogo = `background:0/1em url("...") no-repeat; padding-left:3ex`;
+nf.logLevels = { trace: 0, debug: 1, log: 2, info: 3, warn: 4, error: 5 };
+nf.logLevel = 'info';
+// Sadly, I can't seem to get the conditional into the console call
+// without intercepting the line number. In the future, I might use
+// get/set helper functions that redefine this mapping.
 Object.keys(nf.logLevels).forEach(type => {
-  nf[type] = (...args) => { return nf._log(type, ...args); }
-});
+  if (nf.logLevels[type] >= nf.logLevels[nf.logLevel]) {
+    nf[type] = console[type].bind(window.console, "%c%s\n%c%o",
+      'font-family:sans-serif', Date(),
+      typeof nf.logLogo == "string" ? nf.logLogo : "");
+  } else {
+    nf[type] = () => {}
+  }
+});	// end of nf.trace, nf.debug, nf.log, nf.info, nf.warn, nf.error }}}
 
 
 // Get UserScript metadata for given key with optional value regex (as an array)

@@ -16,7 +16,7 @@
 // All items live in this object, though some are cloned outside it.
 const nf = { GM: {}, addon: {} };
 
-nf.version = '0.3.20240401.0';
+nf.version = '0.3.20240404.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -72,11 +72,9 @@ nf.compareVersions = (versionA, versionB, cmp = ">") => {
 //     nf.logLogo = `background:0/1em url("...") no-repeat; padding-left:3ex`;
 nf.logLevels = { trace: 0, debug: 1, log: 2, info: 3, warn: 4, error: 5 };
 nf.logLevel = 'info';
-// Sadly, I can't seem to get the conditional into the console call
-// without intercepting the line number. In the future, I might use
-// get/set helper functions that redefine this mapping.
 Object.keys(nf.logLevels).forEach(type => {
   if (nf.logLevels[type] >= nf.logLevels[nf.logLevel]) {
+    // https://stackoverflow.com/a/32928812/519360
     nf[type] = console[type].bind(window.console, "%c%s\n%c%o",
       'font-family:sans-serif', Date(),
       typeof nf.logLogo == "string" ? nf.logLogo : "");
@@ -412,44 +410,39 @@ nf.sprintf = (template, ...substitutions) => {
 }	// end nf.sprintf()	}}}
 
 
-// Round a number to a given precision (default is 0, an integer)
-// nf.round(number num, [integer precision]) -> number	{{{
-nf.round = (num, precision = 0) => {
-  precision = 10 ** precision;
-  return parseInt(num * precision + 0.5) / precision;
-}	// end nf.round()	}}}
-
-// Round to size units (English or metric or binary/bytes)
-// nf.round_units(number num, [number precision], [string type]) -> String	{{{
+// Round to human-readable units (English or metric or binary/bytes)
+// nf.roundh(number num, [number width], [string type]) -> String	{{{
 // Types are as follows:
 // * 'English' uses capital K for thousands and B for billions
 // * 'Metric' uses lowercase k for thousands and G for giga (billions)
 // * 'Fractional' is metric including fractional units (m for thousandths)
 // * 'Bytes' is Metric but in blocks of 1024 rather than 1000
-nf.round_units = (num, precision = 3, type = 'English') => {
+nf.roundh = (num, width = 3, type = 'English') => {
   if (num === 0) return '0';
   let sign = '';
   if (num < 0) { sign = '-'; num *= -1; }
-  if (typeof precision == 'string') { // accept swapped order
+  if (typeof width == 'string') { // accept swapped order
     const tmp = typeof type == 'number' ? type : 3;
-    type = precision;
-    precision = tmp;
+    type = width;
+    width = tmp;
   }
   type = type.substr(0, 1).toUpperCase(); // just the first character
   let frac = 0;
   if (type == 'F') { frac = -8; type = 'B'; }
+  else if (num < 1) return sign + num.toFixed(width - 1);
   const base = (type == 'B' ? 1024 : 1000);
   let sizes = ['y','z','a','f','p','n','\u03bc', // U+03bc = mu
     'm','','k','M','G','T','P','E','Z','Y'];
   if (type == 'E') { sizes[9] = 'K'; sizes[11] = 'B'; }
   let power = Math.floor(Math.log(num) / Math.log(base));
   num /= base**power;
+  nf.info(num, num.toPrecision(width), power);
   if (frac <= power && power <= 8) {
     power += 8;
-    return sign + num.toPrecision(precision) + sizes[power];
+    return sign + num.toPrecision(width) + sizes[power];
   }
-  return sign + num.toExponential(precision);
-}	// end nf.round_units()	}}}
+  return sign + num.toExponential(width);
+}	// end nf.roundh()	}}}
 
 
 // Convert seconds to colon-delimited time string (Y:D:HH:MM:SS.SSS, e.g. 4:20)

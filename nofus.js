@@ -417,25 +417,33 @@ nf.sprintf = (template, ...substitutions) => {
 // * 'Metric' uses lowercase k for thousands and G for giga (billions)
 // * 'Fractional' is metric including fractional units (m for thousandths)
 // * 'Bytes' is Metric but in blocks of 1024 rather than 1000
-nf.roundh = (num, width = 3, type = 'English') => {
+nf.roundh = (num, width = 4, type = 'English') => {
   if (num === 0) return '0';
   let sign = '';
   if (num < 0) { sign = '-'; num *= -1; }
   if (typeof width == 'string') { // accept swapped order
-    const tmp = typeof type == 'number' ? type : 3;
+    const tmp = typeof type == 'number' ? type : 4;
     type = width;
     width = tmp;
   }
+  if (!(width >= 2)) throw new RangeError(`width ${width} must be 2+`);
   type = type.substr(0, 1).toUpperCase(); // just the first character
   let frac = 0;
   if (type == 'F') { frac = -8; type = 'B'; }
-  else if (num < 1) return sign + num.toFixed(width - 1);
+  else if (num < 1) return sign + num.toFixed(width - 2);
   const base = (type == 'B' ? 1024 : 1000);
-  let sizes = ['y','z','a','f','p','n','\u03bc', // U+03bc = mu
-    'm','','k','M','G','T','P','E','Z','Y'];
+  let sizes = //.. 3   4   5   6 (mu)   7  8   9  10  11  12  13  14  15  16
+    [ 'y','z','a','f','p','n','\u03bc','m','','k','M','G','T','P','E','Z','Y'];
   if (type == 'E') { sizes[9] = 'K'; sizes[11] = 'B'; }
   let power = Math.floor(Math.log(num) / Math.log(base));
   num /= base**power;
+  /*
+  if (width > 2 && num > 10**(width-1)-0.5) num = num.toFixed();
+  else if (width > 3
+  if (num > 99.5) num = num.toFixed();
+  else num = num.toFixed(1);
+  */
+  if (width == 4) num = num.toFixed(num >= 9.95);
   nf.info(num, num.toPrecision(width), power);
   if (frac <= power && power <= 8) {
     power += 8;

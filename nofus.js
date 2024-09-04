@@ -16,7 +16,7 @@
 // All items live in this object, though some are cloned outside it.
 const nf = { GM: {}, addon: {} };
 
-nf.version = '0.4.20240904.0';
+nf.version = '0.4.20240904.1';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -459,17 +459,9 @@ nf.roundh = (num, width = 4, type = 'English') => {
   if (type == 'E') { sizes[9] = 'K'; sizes[11] = 'B'; }
   let power = Math.floor(Math.log(num) / Math.log(base));
   num /= base**power;
-  /*
-  if (width > 2 && num > 10**(width-1)-0.5) num = num.toFixed();
-  else if (width > 3
-  if (num > 99.5) num = num.toFixed();
-  else num = num.toFixed(1);
-  */
-  if (width == 4) num = num.toFixed(num >= 9.95);
-  nf.info(num, num.toPrecision(width), power);
   if (frac <= power && power <= 8) {
     power += 8;
-    return sign + num.toPrecision(width) + sizes[power];
+    return sign + (num / 1).toPrecision(width) + sizes[power];
   }
   return sign + num.toExponential(width);
 }	// end nf.roundh()	}}}

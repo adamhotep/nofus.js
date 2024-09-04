@@ -16,7 +16,7 @@
 // All items live in this object, though some are cloned outside it.
 const nf = { GM: {}, addon: {} };
 
-nf.version = '0.4.20240904.1';
+nf.version = '0.4.20240904.2';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -89,8 +89,9 @@ Object.keys(nf.logLevels).forEach(type => {
       let msg = '%o';
       if (args.length == 0) msg = "";
       else if (typeof args[0] == 'string') msg = args.shift();
-      console[type].call('%c%s\n%c' + msg, 'font-family:sans-serif', Date(),
-        typeof nf.logLogo == 'string' ? nf.logLogo : '', ...args);
+      console[type].call(this, '%c%s\n%c' + msg, 'font-family:sans-serif',
+        Date(), typeof nf.logLogo == 'string' ? nf.logLogo : '', ...args);
+    }
   } else {
     nf[type] = () => {}
   }
@@ -107,7 +108,7 @@ nf.GM.getMetas = (key, matcher) => {
   let scriptMetaStr = '';
   if (typeof GM == 'object' && GM?.info?.scriptMetaStr) {
     scriptMetaStr = GM.info.scriptMetaStr;
-  } else if (typeof GM_info == "object' && GM_info?.scriptMetaStr) {
+  } else if (typeof GM_info == 'object' && GM_info?.scriptMetaStr) {
     scriptMetaStr = GM_info.scriptMetaStr;
   } else { return null }
   const s = '[\\x20\\t]', S = '[^\\x20\\t]';	// like \s but doesn't match \n
@@ -238,7 +239,9 @@ nf.style$ = (css, where = document) => {
 // * As you can see below, we convert `class` to JS `className`
 nf.$html = (...pairs) => {
   const name = typeof pairs[0] == 'string' ? pairs.shift() : pairs[0]?.nodeName;
-  if (name == undefined) { throw new TypeError("No node name given"); }
+  if (name == undefined) {
+    throw new TypeError(`No node name in nf.$html(${ JSON.stringify(pairs) })`);
+  }
   let elem = document.createElement(name);
 
   if (typeof pairs[0] == 'object') {	// populate attributes
@@ -254,13 +257,14 @@ nf.$html = (...pairs) => {
 
   for (let p = 0; p < pairs.length; p++) {	// create optional children
     if (typeof pairs[p] == 'string') {
+      let name = pairs[p];
       let attributes = {};
-      let next = pairs[p+1];
+      let next = pairs[p + 1];
       if (! (next instanceof HTMLElement) && typeof next == 'object') {
         attributes = next;
         p++;
       }
-      elem.append(nf.$html(pairs[p], attributes));
+      elem.append(nf.$html(name, attributes));
     } else if (pairs[p] instanceof HTMLElement) {  // accept HTML elements as-is
       elem.append(pairs[p]);
     } else { elem.append(nf.$html(pairs[p])); }

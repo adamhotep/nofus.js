@@ -3,8 +3,8 @@
  * Functions ending in a dollar sign (`$`) mean the first arg is a CSS selector.
  * Functions starting with a dollar sign create DOM objects but don't take CSS.
  *
- * A small number of utility functions have "aliases" that exist outside the nf
- * object for easy access. One function can be "installed" into Node.prototype.
+ * A small number of utility functions have aliases that exist outside the nf
+ * object for easy access. One function can be installed into Node.prototype.
  * Search this file for `alias` or `install` to find them.
  *
  * Nofus is copyright 2017+ by Adam Katz. Apache License 2.0
@@ -16,7 +16,7 @@
 // All items live in this object, though some are cloned outside it.
 const nf = { GM: {}, addon: {} };
 
-nf.version = '0.3.20240404.0';
+nf.version = '0.4.20240904.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -32,18 +32,18 @@ nf.version = '0.3.20240404.0';
 // Pre-releases are OLDER than (non-pre-)releases at the same version.
 // See also Semantic Versioning 2.0.0, https://semver.org
 // Unlike semver, we support ANY string, comparing string length then lexically.
-nf.compareVersions = (versionA, versionB, cmp = ">") => {
+nf.compareVersions = (versionA, versionB, cmp = '>') => {
   let t = true, f = false;
-  if (cmp.startsWith("<")) { t = f; f = true }
-  else if (cmp == "==") { t = f }
-  else if (cmp == "!=") { f = t }
+  if (cmp.startsWith('<')) { t = f; f = true }
+  else if (cmp == '==') { t = f }
+  else if (cmp == '!=') { f = t }
   // chuck the build and split into an array
-  const va = versionA.toString().replace(/\+.*/, "").split(".");
-  const vb = versionB.toString().replace(/\+.*/, "").split(".");
+  const va = versionA.toString().replace(/\+.*/, '').split('.');
+  const vb = versionB.toString().replace(/\+.*/, '').split('.');
   const len = va.length > vb.length ? va.length : vb.length;
   for (let i = 0; i < len; i++) {
-    const a = va[i]?.split("-") || [ 0 ];	// [version, pre-release]
-    const b = vb[i]?.split("-") || [ 0 ];	// [version, pre-release]
+    const a = va[i]?.split('-') || [ 0 ];	// [version, pre-release]
+    const b = vb[i]?.split('-') || [ 0 ];	// [version, pre-release]
     if (b[0].length > a[0].length) { return f }
     if (a[0].length > b[0].length || a[0] > b[0]) { return t }
     // pre-releases are *older* than same-number (non-pre-)releases
@@ -53,7 +53,7 @@ nf.compareVersions = (versionA, versionB, cmp = ">") => {
     if (b[1]?.length > a[1]?.length) { return f }
     if (a[1]?.length > b[1]?.length || a[1] > b[1]) { return t }
   }
-  return cmp.endsWith("=") && cmp != '!=';
+  return cmp.endsWith('=') && cmp != '!=';
 }	// end nf.compareVersions()	}}}
 
 
@@ -66,18 +66,31 @@ nf.compareVersions = (versionA, versionB, cmp = ">") => {
 // nf.error(string message, [* substitution...]) -> undefined	{{{
 //
 // https://developer.mozilla.org/en-US/docs/Web/API/console#using_string_substitutions
+//
 // Logs are suppressed if below nf.logLevel (see nf.logLevels)
+// You can set nf.logLevel in your script, or you can set it in your browser
+// for a specific site by opening the Developer Tools and typing something like
+//     localStorage.setItem(nf_logLevel, 'debug');
 //
 // The logo is defined by custom CSS in the `nf.logLogo` variable, such as
-//     nf.logLogo = `background:0/1em url("...") no-repeat; padding-left:3ex`;
+//     nf.logLogo = `background:0/1em url('...') no-repeat; padding-left:3ex`;
 nf.logLevels = { trace: 0, debug: 1, log: 2, info: 3, warn: 4, error: 5 };
-nf.logLevel = 'info';
+if (localStorage) nf.logLevel = localStorage.getItem('nf_logLevel');
+nf.logLevel ??= 'info';
+if (isNaN(nf.logLevels[nf.logLevel])) {
+  console.error("Invalid localStorage.nf_logLevel: `" + nf.logLevel
+    + "` is not one of `" + Object.keys(nf.logLevels).join("`,`")
+    + "`\nFalling back to `info`");
+  nf.logLevel = 'info';
+}
 Object.keys(nf.logLevels).forEach(type => {
   if (nf.logLevels[type] >= nf.logLevels[nf.logLevel]) {
-    // https://stackoverflow.com/a/32928812/519360
-    nf[type] = console[type].bind(window.console, "%c%s\n%c%o",
-      'font-family:sans-serif', Date(),
-      typeof nf.logLogo == "string" ? nf.logLogo : "");
+    nf[type] = (...args) => {
+      let msg = '%o';
+      if (args.length == 0) msg = "";
+      else if (typeof args[0] == 'string') msg = args.shift();
+      console[type].call('%c%s\n%c' + msg, 'font-family:sans-serif', Date(),
+        typeof nf.logLogo == 'string' ? nf.logLogo : '', ...args);
   } else {
     nf[type] = () => {}
   }
@@ -91,10 +104,10 @@ nf.GM.getMetas = (key, matcher) => {
   // Also note that GM.info/GM_info supports direct querying on some items,
   // see https://wiki.greasespot.net/GM.info
   // and https://www.tampermonkey.net/documentation.php#api:GM_info
-  let scriptMetaStr = "";
-  if (typeof GM == "object" && GM?.info?.scriptMetaStr) {
+  let scriptMetaStr = '';
+  if (typeof GM == 'object' && GM?.info?.scriptMetaStr) {
     scriptMetaStr = GM.info.scriptMetaStr;
-  } else if (typeof GM_info == "object" && GM_info?.scriptMetaStr) {
+  } else if (typeof GM_info == "object' && GM_info?.scriptMetaStr) {
     scriptMetaStr = GM_info.scriptMetaStr;
   } else { return null }
   const s = '[\\x20\\t]', S = '[^\\x20\\t]';	// like \s but doesn't match \n
@@ -150,13 +163,15 @@ const q$ = nf.query$;	// alias
 //       https://gist.github.com/adamhotep/7c9068f2196326ab79145ae308b68f9e
 nf.wait$ = (css, action, scope = document, options = { now:1 }) => {
   // option vetting
-  const die = (obj, msg) => { throw new TypeError(`nf.wait$: '${obj}' ${msg}`) }
-  try { nf.query$(css, nf.$html("p")) }
+  const die = (obj, msg) => {
+    throw new TypeError("nf.wait$: `" + obj + "` " + msg);
+  }
+  try { nf.query$(css, nf.$html('p')) }
   catch(e) { die(css, "is not a valid selector") }
-  if (typeof action != "function") { die(action, "is not a function") }
+  if (typeof action != 'function') { die(action, "is not a function") }
   if (! scope?.querySelector) {	// invalid scope
     // if scope is actually the options
-    if (typeof scope == "object" && (nf.objKeys(scope) == 0 || scope.childList
+    if (typeof scope == 'object' && (nf.objKeys(scope) == 0 || scope.childList
     || scope.now != undefined || scope.attributes || scope.characterData)) {
       const tmp = options?.querySelector ? options : document;	// swap?
       options = scope;
@@ -170,8 +185,8 @@ nf.wait$ = (css, action, scope = document, options = { now:1 }) => {
   }
   // end vetting
 
-  // Been-there mark. Anonymous functions work fine: ( function(){} ).name == ""
-  const actionMarker = action.name + "%" + nf.hash_hex(css + action.toString());
+  // Been-there mark. Anonymous functions work fine: ( function(){} ).name == ''
+  const actionMarker = action.name + '%' + nf.hash_hex(css + action.toString());
 
   const run = () => {
     nf.query$(css, scope, true)?.forEach(elem => {
@@ -182,7 +197,7 @@ nf.wait$ = (css, action, scope = document, options = { now:1 }) => {
       elem.nf_found[actionMarker] = true;	// prevent loops even on errors
       try { action(elem) }
       catch (error) {
-        const name = action.name ? `"${action.name}"` : "action";
+        const name = action.name ? '`' + action.name + '`' : "action";
         // we're NOT using nf.error because its timestamps won't cluster well
         console.error(`nf.wait$: error in ${name} function:\n${error}`);
       }
@@ -209,39 +224,46 @@ nf.style$ = (css, where = document) => {
     return where;
   }
   return where.head.appendChild(
-    nf.$html("style", { type: "text/css", textContent: css })
+    nf.$html('style', { type: 'text/css', textContent: css })
   );
 }	// end nf.style$()	}}}
 
 
-// Make an HTML node. Optional subsequent node+attr pairs become its children.
+// Make an HTML node. Children are set with subsequent attr or node+attr pairs.
 // nf.$html(string nodeName, [object attributes] ...) -> HTMLElement	{{{
-// TODO: is this a safe way to deep-clone an element? That wasn't the intent...
 // NOTE: attributes are JavaScript, not HTML:
+// * Accepts HTML elements as children
 // * nodeName is actually optional if attributes.nodeName exists
 // * The `textContent` attribute will populate text inside the node
 // * As you can see below, we convert `class` to JS `className`
 nf.$html = (...pairs) => {
-  const name = typeof pairs[0] == "string" ? pairs.shift() : pairs[0]?.nodeName;
+  const name = typeof pairs[0] == 'string' ? pairs.shift() : pairs[0]?.nodeName;
   if (name == undefined) { throw new TypeError("No node name given"); }
   let elem = document.createElement(name);
 
-  if (typeof pairs[0] == "object") {	// populate attributes
+  if (typeof pairs[0] == 'object') {	// populate attributes
     const attributes = pairs.shift();
     Object.keys(attributes).forEach(key => {
-      if (key == "class") { elem["className"] = attributes[key] } // JS mapping
+      if (key == 'class') { elem['className'] = attributes[key] } // JS mapping
       else { elem[key] = attributes[key] }
     });
   }
-  if (elem.id != "" && document.getElementById(elem.id)) {
-    nf.warn('nf.$html() element has non-unique id "%s":\n%o', elem.id, elem);
+  if (elem.id != '' && document.getElementById(elem.id)) {
+    nf.warn("nf.$html() element has non-unique id `%s`:\n%o", elem.id, elem);
   }
 
   for (let p = 0; p < pairs.length; p++) {	// create optional children
-    if (typeof pairs[p] == "string") {
-      elem.appendChild(nf.$html(pairs[p],
-        typeof pairs[p+1] == "object" ? pairs[++p] : {}));  // obj: increment p
-    } else { elem.appendChild(nf.$html(pairs[p])); }
+    if (typeof pairs[p] == 'string') {
+      let attributes = {};
+      let next = pairs[p+1];
+      if (! (next instanceof HTMLElement) && typeof next == 'object') {
+        attributes = next;
+        p++;
+      }
+      elem.append(nf.$html(pairs[p], attributes));
+    } else if (pairs[p] instanceof HTMLElement) {  // accept HTML elements as-is
+      elem.append(pairs[p]);
+    } else { elem.append(nf.$html(pairs[p])); }
   }
 
   return elem;
@@ -291,10 +313,10 @@ nf.installInsertAfter = () => {
 // * For now, you can put spaces in meta-patterns like `(? i:text)`,
 //   though this is hard to read and therefore not recommended,
 //   and this functionality may change to be more like Perl in the future
-nf.regex = nf.regExp = (pattern, flags = "") => {
-  if (flags.includes("x")) {
-    let x = 1 + (flags.lastIndexOf("x") > flags.indexOf("x"));	// x=1, xx=2
-    flags = flags.replace(/x+/g, "");
+nf.regex = nf.regExp = (pattern, flags = '') => {
+  if (flags.includes('x')) {
+    let x = 1 + (flags.lastIndexOf('x') > flags.indexOf('x'));	// x=1, xx=2
+    flags = flags.replace(/x+/g, '');
     let classes = [];
     // The negative lookbehind ensures we don't key on an escaped character.
     // If we could define it with the `x` flag, it'd be easier to understand:
@@ -305,15 +327,15 @@ nf.regex = nf.regExp = (pattern, flags = "") => {
     pattern = pattern
       // set bracketed character classes aside (immunize against next replace)
       .replace(/(?<!(?<!\\)(?:\\\\)*\\)\[[^\]]*\]/g, all => {
-        let brackets = all.replace(/\n/g, "\\n");	// escape newlines
+        let brackets = all.replace(/\n/g, '\\n');	// escape newlines
         if (x == 2) {	// `xx` purges unescaped spaces in bracketed classes
-          brackets = brackets.replace(/(?<!(?<!\\)(?:\\\\)*\\)\s+/g, "")
+          brackets = brackets.replace(/(?<!(?<!\\)(?:\\\\)*\\)\s+/g, '')
         }
         classes.push(brackets);
         return `(?\u0000${classes.length - 1})`;	// set aside
       })
       // remove comments and spaces
-      .replace(/(?<!(?<!\\)(?:\\\\)*\\)(?:#.*$|\s+)/mg, "")
+      .replace(/(?<!(?<!\\)(?:\\\\)*\\)(?:#.*$|\s+)/mg, '')
       // return bracketed character classes
       .replace(/\(\?\u0000([0-9]+)\)/g, (all, i) => {
         return classes[i] || all
@@ -334,79 +356,79 @@ nf.regex = nf.regExp = (pattern, flags = "") => {
 //   * vector flags (modifiers) like %vd
 nf.sprintf = (template, ...substitutions) => {
   return template
-    .replace(/\u0000/g, "")	// no null characters, we use those as escapes
-    .replace(/%%/g, "\u0000")	// escaped escapes are temporarily nulls
+    .replace(/\u0000/g, '')	// no null characters, we use those as escapes
+    .replace(/%%/g, '\u0000')	// escaped escapes are temporarily nulls
 
     .replace(/%([# 0+-]*)([0-9]*|\*)(\.(?:[0-9]*|\*))?([bBcsduoxXeEfFgGi])/g,
       (all, flags, minWidth, prec, type) => {
-        if (minWidth == "*") {
+        if (minWidth == '*') {
           minWidth  = substitutions.shift();
-          if (minWidth < 0) { flags += "-"; minWidth *= -1; }
+          if (minWidth < 0) { flags += '-'; minWidth *= -1; }
         }
-        if (prec == ".") { prec = ""; }
-        else if (prec == ".*") { prec = substitutions.shift(); }
+        if (prec == '.') { prec = ''; }
+        else if (prec == '.*') { prec = substitutions.shift(); }
         else if (prec != undefined) { prec = prec.substring(1); }
         // Yes, prec is `undefined` when missing and that we use that here
         if (prec < 0) { prec = undefined; }  // negative = no precision at all
 
-        let out = substitutions.shift() + "";
+        let out = substitutions.shift() + '';
         const ltype = type.toLowerCase();
 
         if (ltype.match(/[boxdiu]/)) {	// integer (bin, oct, hex, or decimal)
           if (prec != undefined) {	// ignore 0 flag there's a precision
-            flags = flags.replace(/0+/g, "");
+            flags = flags.replace(/0+/g, '');
           }
-          let prefix = "0" + type;
+          let prefix = '0' + type;
           let base = 10;					// decimal
-          if      (ltype == "b") { base = 2; }			// binary
-          else if (ltype == "o") { base = 8; prefix = ""; }	// octal
-          else if (ltype == "x") { base = 16; }			// hexadecimal
+          if      (ltype == 'b') { base = 2; }			// binary
+          else if (ltype == 'o') { base = 8; prefix = ''; }	// octal
+          else if (ltype == 'x') { base = 16; }			// hexadecimal
 
-          out = parseInt(out).toString(base).padStart(prec, "0");
+          out = parseInt(out).toString(base).padStart(prec, '0');
 
-          if (flags.includes("#") && base != 10) {
-            if (ltype == "o" && out.substring(0, 1) != "0") { prefix = "0"; }
+          if (flags.includes('#') && base != 10) {
+            if (ltype == 'o' && out.substring(0, 1) != '0') { prefix = '0'; }
             out = prefix + out;
           }
         }
 
-        else if (type == "c") { 	// character from numeric code
+        else if (type == 'c') { 	// character from numeric code
           out = String.fromCharCode(out);
         }
 
-        else if (ltype == "e") {	// exponential/scientific notation
+        else if (ltype == 'e') {	// exponential/scientific notation
           out = parseFloat(out).toExponential(prec).replace(/e/, type);
-        } else if (ltype == "f") {	// fixed float
+        } else if (ltype == 'f') {	// fixed float
           out = parseFloat(out).toFixed(prec);
-        } else if (ltype == "g") {	// fixed or scientific by significance
+        } else if (ltype == 'g') {	// fixed or scientific by significance
           out = parseFloat(out).toPrecision(prec)
-            .replace(/e/, type == "G" ? "E" : "e");
+            .replace(/e/, type == 'G' ? 'E' : 'e');
         }
 
-        else if (type == "s") {
+        else if (type == 's') {
           out = out.substring(0, prec);
         }
 
 
         // pad non-negative numbers when told to do so
-        if (type != "c" && type != "s" && out.substring(0, 1) != "-") {
-          if (flags.includes("+")) { out = "+" + out; }	// plus trumps space
-          else if (flags.includes(" ")) { out = " " + out; }
+        if (type != 'c' && type != 's' && out.substring(0, 1) != '-') {
+          if (flags.includes('+')) { out = '+' + out; }	// plus trumps space
+          else if (flags.includes(' ')) { out = ' ' + out; }
         }
 
 
-        if (minWidth > 0) {	// ("" > 0) is false
-          if (flags.includes("-")) {	// left-justify, ignore `0` flag
-            out = out.padEnd(minWidth, " ");
+        if (minWidth > 0) {	// ('' > 0) is false
+          if (flags.includes('-')) {	// left-justify, ignore `0` flag
+            out = out.padEnd(minWidth, ' ');
           } else {
-            out = out.padStart(minWidth, flags.includes("0") ? "0" : " ");
+            out = out.padStart(minWidth, flags.includes('0') ? '0' : ' ');
           }
         }
 
         return out;
       })
 
-    .replace(/\u0000/g, "%");	// swap temporary null escape back, MUST BE LAST
+    .replace(/\u0000/g, '%');	// swap temporary null escape back, MUST BE LAST
 }	// end nf.sprintf()	}}}
 
 
@@ -463,15 +485,15 @@ nf.sec2time = (seconds = 0, units = undefined) => {
   seconds -= d * ( days    = Math.floor(seconds / d) );
   seconds -= h * ( hours   = Math.floor(seconds / h) );
   seconds -= m * ( minutes = Math.floor(seconds / m) );
-  seconds = years + "y "
-          + days + "d "
-          + String(hours).padStart(2, "0") + "h "
-          + String(minutes).padStart(2, "0") + "m "
-          + String(seconds.toFixed(3)).padStart(6, "0");	// %06.3f
+  seconds = years + 'y '
+          + days + 'd '
+          + String(hours).padStart(2, '0') + 'h '
+          + String(minutes).padStart(2, '0') + 'm '
+          + String(seconds.toFixed(3)).padStart(6, '0');	// %06.3f
   // strip leading zeros & trailing zeros down to M:SS, 0:0:00:00:00.00 -> 0:00
-  seconds = seconds.replace(/^[0ydh ]+|\.?0+$/g, "");
-  if (units == undefined) { return seconds.replace(/[ydhm] /g, ":"); }
-  return seconds.replace(/ 0(?=[0-9])/g, "") + "s";
+  seconds = seconds.replace(/^[0ydh ]+|\.?0+$/g, '');
+  if (units == undefined) { return seconds.replace(/[ydhm] /g, ':'); }
+  return seconds.replace(/ 0(?=[0-9])/g, '') + 's';
 }	// end nf.sec2time()	}}}
 
 // Convert seconds to unit-based time string (Yy Dd Hh Mm S.SSSs, e.g. 3d 16m)
@@ -483,7 +505,7 @@ nf.sec2units = (seconds = 0) => {
 // Convert colon-delimited time string (Y:D:H:M:S) to seconds
 // nf.time2sec(string time) -> number	{{{
 nf.time2sec = time => {
-  const parts = time.toString().split(":").reverse();
+  const parts = time.toString().split(':').reverse();
   let seconds = 0;
   if (parts.length > 5) { throw new SyntaxError("Too many parts in time!"); }
   if (parts.length == 5) { seconds += y * parts[4]; }
@@ -510,7 +532,7 @@ nf.units2sec = time => {
     (?: (?<minutes> ${num} ) \\s* m (?: in (?: ute )? s? )?	,? \\s* )?
     (?: (?<seconds> ${num} ) \\s* (?: s (?: ec (?: ond )? s? )? \\b | $ ) )?
     \\s* $
-  `, "xi"));
+  `, 'xi'));
   if (parts == null) { throw new SyntaxError("Invalid time string"); }
 
   return (parts.groups.years	?? 0) * 31536000	// 1y = 365.00d
@@ -526,13 +548,13 @@ nf.units2sec = time => {
 // nf.timecalc(string|number time) -> number | string	{{{
 nf.timecalc = time => {
 
-  // number -> colon-delimited, e.g. 1234 -> "20:34"
+  // number -> colon-delimited, e.g. 1234 -> '20:34'
   if (!isNaN(time) && !isNaN(parseFloat(time))) { return nf.sec2time(time); }
 
-  // colon-delimited -> number, e.g. "20:34" -> 1234
+  // colon-delimited -> number, e.g. '20:34' -> 1234
   if (time.match(/^[0-9.]*:[0-9.:]*$/)) { return nf.time2sec(time); }
 
-  // unit-marked -> number, e.g. "20m 34s" -> 1234
+  // unit-marked -> number, e.g. '20m 34s' -> 1234
   return nf.units2sec(time);
 
 };	// end nf.timecalc()	}}}
@@ -545,8 +567,8 @@ nf.timecalc = time => {
 // See https://stackoverflow.com/a/22429679/519360 and especially its comments.
 // DO NOT USE FOR SECURE COLLISION-RESISTANT CODE (e.g. password hashing).
 nf.hash = (str, seed = 0x811c9dc5) => {
-  if (typeof str != "string") {
-    if (typeof str.toString == "function") { str = str.toString(); }
+  if (typeof str != 'string') {
+    if (typeof str.toString == 'function') { str = str.toString(); }
     else throw new TypeError("Could not convert input to a string");
   }
   for (let i = 0, len = str.length; i < len; i++) {
@@ -567,7 +589,7 @@ nf.hash_hex = (str, seed) => {
 // nf.objKeys(object obj) -> number | undefined	{{{
 // via https://stackoverflow.com/a/32108184/519360, adapted to count
 nf.objKeys = obj => {
-  if (obj == null || typeof obj != "object") return undefined;
+  if (obj == null || typeof obj != 'object') return undefined;
   const proto = Object.getPrototypeOf(obj);
   if (proto !== null && proto !== Object.prototype) return undefined;
   let n = 0;

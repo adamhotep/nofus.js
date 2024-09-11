@@ -16,7 +16,7 @@
 // All items live in this object, though some are cloned outside it.
 const nf = { GM: {}, addon: {} };
 
-nf.version = '0.4.20240910.0';
+nf.version = '0.4.20240911.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -58,12 +58,12 @@ nf.compareVersions = (versionA, versionB, cmp = '>') => {
 
 
 // Log if logLevel is sufficient. Includes time, logo, string substitution
-// nf.trace(string message, [* substitution...]) -> undefined
+// nf.trace(string message, [* substitution...]) -> undefined	{{{
 // nf.debug(string message, [* substitution...]) -> undefined
 // nf.log(string message, [* substitution...]) -> undefined
 // nf.info(string message, [* substitution...]) -> undefined
 // nf.warn(string message, [* substitution...]) -> undefined
-// nf.error(string message, [* substitution...]) -> undefined	{{{
+// nf.error(string message, [* substitution...]) -> undefined
 //
 // https://developer.mozilla.org/en-US/docs/Web/API/console#using_string_substitutions
 //
@@ -134,25 +134,29 @@ nf.GM.getMeta = (key, matcher) => {
 
 
 // Returns HTML element(s) matched as queried via CSS selector
-// nf.query$(string css, [HTMLElement scope], [boolean list]) -> HTMLElement | HTMLElement[]	{{{
-// q$(css)           ->  document.querySelector(css)
-// q$(css, elem)     ->  elem.querySelector(css)
-// q$(css, true)     ->  document.querySelectorAll(css)
-// q$(css, elem, 1)  ->  elem.querySelectorAll(css)
-// q$(css, 1, elem)  ->  elem.querySelectorAll(css)
-nf.query$ = function(css, scope = document, list) {
+// nf.query$(string css, [HTMLElement scope], [boolean all]) -> HTMLElement | HTMLElement[]	{{{
+// nf.queryAll$(string css, [HTMLElement scope]) -> HTMLElement[]
+// q$(css)		=  document.querySelector(css)
+// q$(css, elem)	=  elem.querySelector(css)
+// q$(css, true)	=  document.querySelectorAll(css)
+// q$(css, elem, 1)	=  elem.querySelectorAll(css)
+// q$(css, 1, elem)	=  elem.querySelectorAll(css)
+nf.query$ = (css, scope = document, all) => {
   let q = 'querySelector';
   if (typeof scope[q] != 'function') {
-    if (typeof list[q] == 'function') {	// run as q$(css, list, scope)
-      const tmp = scope; scope = list; list = tmp;
-    } else {				// run as q$(css, list)
-      list = scope; scope = document;
+    if (all != undefined && typeof all[q] == 'function') {
+      const tmp = scope; scope = all; all = tmp;	// q$(css, all, scope)
+    } else {
+      all = scope; scope = document;			// q$(css, all)
     }
   }
-  if (list) q += 'All';
+  if (all) q += 'All';
   return scope[q](css);
-}	// end nf.query$()	}}}
+}
+nf.queryAll$ = (css, scope = document) => { nf.query$(css, scope, 'all'); }
+// end nf.query$()	}}}
 const q$ = nf.query$;	// alias
+const qa$ = nf.queryAll$;	// alias
 
 
 // Wait for HTML elements matching CSS, run given function on them upon loading

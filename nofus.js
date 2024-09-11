@@ -16,7 +16,7 @@
 // All items live in this object, though some are cloned outside it.
 const nf = { GM: {}, addon: {} };
 
-nf.version = '0.4.20240904.2';
+nf.version = '0.4.20240910.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -141,13 +141,16 @@ nf.GM.getMeta = (key, matcher) => {
 // q$(css, elem, 1)  ->  elem.querySelectorAll(css)
 // q$(css, 1, elem)  ->  elem.querySelectorAll(css)
 nf.query$ = function(css, scope = document, list) {
-  if (arguments.length == 2 && typeof scope?.querySelector != 'function') {
-    list = scope; scope = document;		// run as q$(css, list)
-  } else if (typeof list?.querySelector == 'function' && !!scope == scope) {
-    const tmp = scope; scope = list; list = tmp; // run as q$(css, list, scope)
+  let q = 'querySelector';
+  if (typeof scope[q] != 'function') {
+    if (typeof list[q] == 'function') {	// run as q$(css, list, scope)
+      const tmp = scope; scope = list; list = tmp;
+    } else {				// run as q$(css, list)
+      list = scope; scope = document;
+    }
   }
-  if (list) { return scope.querySelectorAll(css) }
-  else     { return scope.querySelector(css) }
+  if (list) q += 'All';
+  return scope[q](css);
 }	// end nf.query$()	}}}
 const q$ = nf.query$;	// alias
 

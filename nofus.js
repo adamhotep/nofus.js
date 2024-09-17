@@ -3,8 +3,8 @@
  * Functions ending in a dollar sign (`$`) mean the first arg is a CSS selector.
  * Functions starting with a dollar sign create DOM objects but don't take CSS.
  *
- * A small number of utility functions have aliases that exist outside the nf
- * object for easy access. One function can be installed into Node.prototype.
+ * A few utility functions have aliases that exist outside the `nf` object
+ * for easy access. One function can be installed into Node.prototype.
  * Search this file for `alias` or `install` to find them.
  *
  * Nofus is copyright 2017+ by Adam Katz. Apache License 2.0
@@ -14,9 +14,9 @@
 'use strict';
 
 // All items live in this object, though some are cloned outside it.
-const nf = { GM: {}, addon: {} };
+const nf = { GM:{}, addon:{} }
 
-nf.version = '0.4.20240911.0';
+nf.version = '0.5.20240916.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -34,7 +34,7 @@ nf.version = '0.4.20240911.0';
 // Unlike semver, we support ANY string, comparing string length then lexically.
 nf.compareVersions = (versionA, versionB, cmp = '>') => {
   let t = true, f = false;
-  if (cmp.startsWith('<')) { t = f; f = true }
+  if (cmp[0] == '<') { t = f; f = true }
   else if (cmp == '==') { t = f }
   else if (cmp == '!=') { f = t }
   // chuck the build and split into an array
@@ -74,7 +74,7 @@ nf.compareVersions = (versionA, versionB, cmp = '>') => {
 //
 // The logo is defined by custom CSS in the `nf.logLogo` variable, such as
 //     nf.logLogo = `background:0/1em url('...') no-repeat; padding-left:3ex`;
-nf.logLevels = { trace: 0, debug: 1, log: 2, info: 3, warn: 4, error: 5 };
+nf.logLevels = { trace:0, debug:1, log:2, info:3, warn:4, error:5 }
 if (localStorage) nf.logLevel = localStorage.getItem('nf_logLevel');
 nf.logLevel ??= 'info';
 if (isNaN(nf.logLevels[nf.logLevel])) {
@@ -118,7 +118,7 @@ nf.GM.getMetas = (key, matcher) => {
   let matches = [];
   values.forEach(v => { if (matcher.exec(v)) matches.push(v) });
   return matches.length ? matches : null;
-};	// end nf.GM.getMetas() }}}
+}	// end nf.GM.getMetas() }}}
 
 // Get UserScript metadata for given key with optional value regex (first match)
 // nf.GM.getMeta(string key, [RegExp matcher]) -> string | string[] | undefined	{{{
@@ -130,30 +130,32 @@ nf.GM.getMeta = (key, matcher) => {
     return value[0];
   }
   return undefined;
-};	// end nf.GM.getMeta() }}}
+}	// end nf.GM.getMeta() }}}
 
 
 // Returns HTML element(s) matched as queried via CSS selector
 // nf.query$(string css, [HTMLElement scope], [boolean all]) -> HTMLElement | HTMLElement[]	{{{
 // nf.queryAll$(string css, [HTMLElement scope]) -> HTMLElement[]
-// q$(css)		=  document.querySelector(css)
-// q$(css, elem)	=  elem.querySelector(css)
-// q$(css, true)	=  document.querySelectorAll(css)
-// q$(css, elem, 1)	=  elem.querySelectorAll(css)
-// q$(css, 1, elem)	=  elem.querySelectorAll(css)
+// q$(css)           =  document.querySelector(css)
+// q$(css, elem)     =  elem.querySelector(css)
+// q$(css, true)     =  document.querySelectorAll(css)
+// q$(css, elem, 1)  =  elem.querySelectorAll(css)
+// q$(css, 1, elem)  =  elem.querySelectorAll(css)
 nf.query$ = (css, scope = document, all) => {
   let q = 'querySelector';
   if (typeof scope[q] != 'function') {
-    if (all != undefined && typeof all[q] == 'function') {
-      const tmp = scope; scope = all; all = tmp;	// q$(css, all, scope)
-    } else {
-      all = scope; scope = document;			// q$(css, all)
+    if (all && typeof all[q] == 'function') {	// q$(css, all, scope)
+      const tmp = scope;
+      scope = all; all = tmp;
+    } else {					// q$(css, all)
+      all = scope;
+      scope = document;
     }
   }
   if (all) q += 'All';
   return scope[q](css);
 }
-nf.queryAll$ = (css, scope = document) => { nf.query$(css, scope, 'all'); }
+nf.queryAll$ = (css, scope) => { return nf.query$(css, scope, 1) }
 // end nf.query$()	}}}
 const q$ = nf.query$;	// alias
 const qa$ = nf.queryAll$;	// alias
@@ -193,8 +195,9 @@ nf.wait$ = (css, action, scope = document, options = { now:1 }) => {
   }
   // end vetting
 
-  // Been-there mark. Anonymous functions work fine: ( function(){} ).name == ''
-  const actionMarker = action.name + '%' + nf.hash_hex(css + action.toString());
+  // Been-there mark. Anonymous functions are blank, so we hash their code.
+  const actionMarker = (action.name || nf.hash(action.toString(), 36))
+    + `@${nf.hash(css, 36)}$${parseInt(Math.random() * 36**6).toString(36)}`;
 
   const run = () => {
     nf.query$(css, scope, true)?.forEach(elem => {
@@ -225,25 +228,29 @@ const w$ = nf.wait$;	// alias
 
 
 // Add to or else make and insert a new CSS <style> element
-// nf.style$(string css, [HTMLDocument|HTMLStyleElement where]) -> HTMLElement	{{{
+// nf.style$(string css, [HTMLDocument|HTMLStyleElement where]) -> HTMLStyleElement	{{{
 nf.style$ = (css, where = document) => {
   if (where instanceof HTMLStyleElement) {
     where.textContent += css;
     return where;
   }
   return where.head.appendChild(
-    nf.$html('style', { type: 'text/css', textContent: css })
+    nf.$html('style', { type:'text/css', text:css })
   );
 }	// end nf.style$()	}}}
 
 
 // Make an HTML node. Children are set with subsequent attr or node+attr pairs.
-// nf.$html(string nodeName, [object attributes] ...) -> HTMLElement	{{{
-// NOTE: attributes are JavaScript, not HTML:
+// nf.$html(string nodeName, [object attributes], [Node child] ...) -> HTMLElement	{{{
+// NOTE: attributes are HTML, not JavaScript (they were JS in nofus.js < 0.5):
 // * Accepts HTML elements as children
 // * nodeName is actually optional if attributes.nodeName exists
-// * The `textContent` attribute will populate text inside the node
-// * As you can see below, we convert `class` to JS `className`
+// * The `attributes` object sets HTML attributes except as follows:
+//   * `text` & `textContent` set content (with both, `text` is an attribute)
+//   * `className` sets `class` (with both, both are attributes)
+//   * `value` sets the Javascript value, not the HTML attribute
+//   * accepts `dataset.fooBar` as `data-foo-bar`
+//   * `nodeName` sets the element name, not an attribute
 nf.$html = (...pairs) => {
   const name = typeof pairs[0] == 'string' ? pairs.shift() : pairs[0]?.nodeName;
   if (name == undefined) {
@@ -251,11 +258,22 @@ nf.$html = (...pairs) => {
   }
   let elem = document.createElement(name);
 
-  if (typeof pairs[0] == 'object') {	// populate attributes
+  if (! (pairs[0] instanceof Node) && typeof pairs[0] == 'object') { // attrs
     const attributes = pairs.shift();
+    let isKey = (key, a, b) => {
+      return key == a || attributes[a] == undefined && key == b;
+    }
     Object.keys(attributes).forEach(key => {
-      if (key == 'class') { elem['className'] = attributes[key] } // JS mapping
-      else { elem[key] = attributes[key] }
+      let value = attributes[key]?.toString();
+      if (key == 'value') {
+        elem[key] = value;
+      } else if (isKey(key, 'textContent', 'text')) {
+        elem.textContent = value;
+      } else if (isKey(key, 'class', 'className')) {
+        elem.setAttribute('class', value);
+      } else if (key.startsWith('dataset.') && key.lastIndexOf('.') == 7) {
+        elem.dataset[key.slice(8)] = value;
+      } else if (key != 'nodeName') elem.setAttribute(key, value);
     });
   }
   if (elem.id != '' && document.getElementById(elem.id)) {
@@ -265,14 +283,14 @@ nf.$html = (...pairs) => {
   for (let p = 0; p < pairs.length; p++) {	// create optional children
     if (typeof pairs[p] == 'string') {
       let name = pairs[p];
-      let attributes = {};
+      let attributes = {}
       let next = pairs[p + 1];
-      if (! (next instanceof HTMLElement) && typeof next == 'object') {
+      if (! (next instanceof Node) && typeof next == 'object') {
         attributes = next;
         p++;
       }
       elem.append(nf.$html(name, attributes));
-    } else if (pairs[p] instanceof HTMLElement) {  // accept HTML elements as-is
+    } else if (pairs[p] instanceof Node) {	// accept a node as-is
       elem.append(pairs[p]);
     } else { elem.append(nf.$html(pairs[p])); }
   }
@@ -378,7 +396,7 @@ nf.sprintf = (template, ...substitutions) => {
         }
         if (prec == '.') { prec = ''; }
         else if (prec == '.*') { prec = substitutions.shift(); }
-        else if (prec != undefined) { prec = prec.substring(1); }
+        else if (prec != undefined) { prec = prec.slice(1); }
         // Yes, prec is `undefined` when missing and that we use that here
         if (prec < 0) { prec = undefined; }  // negative = no precision at all
 
@@ -390,15 +408,15 @@ nf.sprintf = (template, ...substitutions) => {
             flags = flags.replace(/0+/g, '');
           }
           let prefix = '0' + type;
-          let base = 10;					// decimal
-          if      (ltype == 'b') { base = 2; }			// binary
-          else if (ltype == 'o') { base = 8; prefix = ''; }	// octal
-          else if (ltype == 'x') { base = 16; }			// hexadecimal
+          let radix = 10;					// decimal
+          if      (ltype == 'b') { radix = 2; }			// binary
+          else if (ltype == 'o') { radix = 8; prefix = ''; }	// octal
+          else if (ltype == 'x') { radix = 16; }			// hexadecimal
 
-          out = parseInt(out).toString(base).padStart(prec, '0');
+          out = (+ out).toString(radix).padStart(prec, '0');
 
-          if (flags.includes('#') && base != 10) {
-            if (ltype == 'o' && out.substring(0, 1) != '0') { prefix = '0'; }
+          if (flags.includes('#') && radix != 10) {
+            if (ltype == 'o' && out.slice(0, 1) != '0') { prefix = '0'; }
             out = prefix + out;
           }
         }
@@ -408,21 +426,20 @@ nf.sprintf = (template, ...substitutions) => {
         }
 
         else if (ltype == 'e') {	// exponential/scientific notation
-          out = parseFloat(out).toExponential(prec).replace(/e/, type);
+          out = (+ out).toExponential(prec).replace(/e/, type);
         } else if (ltype == 'f') {	// fixed float
-          out = parseFloat(out).toFixed(prec);
+          out = (+ out).toFixed(prec);
         } else if (ltype == 'g') {	// fixed or scientific by significance
-          out = parseFloat(out).toPrecision(prec)
-            .replace(/e/, type == 'G' ? 'E' : 'e');
+          out = (+ out).toPrecision(prec).replace(/e/, type == 'G' ? 'E' : 'e');
         }
 
         else if (type == 's') {
-          out = out.substring(0, prec);
+          out = out.slice(0, prec);
         }
 
 
         // pad non-negative numbers when told to do so
-        if (type != 'c' && type != 's' && out.substring(0, 1) != '-') {
+        if (type != 'c' && type != 's' && out.slice(0, 1) != '-') {
           if (flags.includes('+')) { out = '+' + out; }	// plus trumps space
           else if (flags.includes(' ')) { out = ' ' + out; }
         }
@@ -460,16 +477,16 @@ nf.roundh = (num, width = 4, type = 'English') => {
     width = tmp;
   }
   if (!(width >= 2)) throw new RangeError(`width ${width} must be 2+`);
-  type = type.substr(0, 1).toUpperCase(); // just the first character
+  type = type.slice(0, 1).toUpperCase(); // just the first character
   let frac = 0;
   if (type == 'F') { frac = -8; type = 'B'; }
   else if (num < 1) return sign + num.toFixed(width - 2);
-  const base = (type == 'B' ? 1024 : 1000);
+  const radix = (type == 'B' ? 1024 : 1000);
   let sizes = //.. 3   4   5   6 (mu)   7  8   9  10  11  12  13  14  15  16
     [ 'y','z','a','f','p','n','\u03bc','m','','k','M','G','T','P','E','Z','Y'];
   if (type == 'E') { sizes[9] = 'K'; sizes[11] = 'B'; }
-  let power = Math.floor(Math.log(num) / Math.log(base));
-  num /= base**power;
+  let power = Math.floor(Math.log(num) / Math.log(radix));
+  num /= radix**power;
   if (frac <= power && power <= 8) {
     power += 8;
     return sign + (num / 1).toPrecision(width) + sizes[power];
@@ -481,7 +498,7 @@ nf.roundh = (num, width = 4, type = 'English') => {
 // Convert seconds to colon-delimited time string (Y:D:HH:MM:SS.SSS, e.g. 4:20)
 // nf.sec2time(number seconds, [boolean units]) -> string	{{{
 // (See nf.sec2units below for what happens when `units` is defined)
-nf.sec2time = (seconds = 0, units = undefined) => {
+nf.sec2time = (seconds = 0, units) => {
   const y = 31536000, d = 86400, h = 3600, m = 60;
   let years, days, hours, minutes;
   seconds -= y * ( years   = Math.floor(seconds / y) );
@@ -495,7 +512,7 @@ nf.sec2time = (seconds = 0, units = undefined) => {
           + String(seconds.toFixed(3)).padStart(6, '0');	// %06.3f
   // strip leading zeros & trailing zeros down to M:SS, 0:0:00:00:00.00 -> 0:00
   seconds = seconds.replace(/^[0ydh ]+|\.?0+$/g, '');
-  if (units == undefined) { return seconds.replace(/[ydhm] /g, ':'); }
+  if (!units) { return seconds.replace(/[ydhm] /g, ':'); }
   return seconds.replace(/ 0(?=[0-9])/g, '') + 's';
 }	// end nf.sec2time()	}}}
 
@@ -552,7 +569,7 @@ nf.units2sec = time => {
 nf.timecalc = time => {
 
   // number -> colon-delimited, e.g. 1234 -> '20:34'
-  if (!isNaN(time) && !isNaN(parseFloat(time))) { return nf.sec2time(time); }
+  if (!isNaN(time) && !isNaN(+ time)) { return nf.sec2time(+ time); }
 
   // colon-delimited -> number, e.g. '20:34' -> 1234
   if (time.match(/^[0-9.]*:[0-9.:]*$/)) { return nf.time2sec(time); }
@@ -560,32 +577,68 @@ nf.timecalc = time => {
   // unit-marked -> number, e.g. '20m 34s' -> 1234
   return nf.units2sec(time);
 
-};	// end nf.timecalc()	}}}
+}	// end nf.timecalc()	}}}
+
+
+// Convert pretty much anything into a string
+// nf.stringify(* obj) -> string	{{{
+nf.stringify = obj => {
+  if (typeof obj != 'string') {
+    obj = obj?.outerHTML ?? obj?.wholeText ?? JSON.stringify(obj)
+      ?? obj?.toString();
+    if (obj == undefined || obj == '{}') {
+      throw new TypeError("nf.stringify: Could not convert input to a string");
+    }
+  }
+  return obj;
+}	// end of nf.stringify()	}}}
 
 
 // Fast non-cryptographic checksum hasher (Fowler-Noll-Vo)
-// nf.hash(string str, [string seed]) -> number	{{{
+// nf.hash(string str, [number radix], [string seed]) -> number|string	{{{
 // Fowler-Noll-Vo (FNV-1a) is a FAST simple non-cryptographic hashing function.
 // https://en.wikipedia.org/wiki/Fowler-Noll-Vo_hash_function
 // See https://stackoverflow.com/a/22429679/519360 and especially its comments.
 // DO NOT USE FOR SECURE COLLISION-RESISTANT CODE (e.g. password hashing).
-nf.hash = (str, seed = 0x811c9dc5) => {
-  if (typeof str != 'string') {
-    if (typeof str.toString == 'function') { str = str.toString(); }
-    else throw new TypeError("Could not convert input to a string");
-  }
+nf.hash = (str, radix = 10, seed = 0x811c9dc5) => {
+  str = nf.stringify(str);
   for (let i = 0, len = str.length; i < len; i++) {
     seed ^= str.charCodeAt(i);
     seed = Math.imul(seed, 0x01000193);
   }
-  return seed >>> 0;
+  seed = seed >>> 0;
+  if (radix != 10) return seed.toString(radix);
+  return seed;
 }	// end nf.hash()	}}}
 
 // Fast non-cryptographic checksum hasher (Fowler-Noll-Vo) as hex string
 // nf.hash_hex(string str) -> string	{{{
 nf.hash_hex = (str, seed) => {
-  return nf.hash(str, seed).toString(16);
+  return nf.hash(str, 16, seed);
 }	// end nf.hash_hex()	}}}
+
+
+// Convert any CSS-valid color to #RRGGBB[AA] format
+// WARNING: this uses the document body, which may not yet be loaded!
+// nf.color2hex(string color) -> string	{{{
+nf.color2hex = (color) => {
+  let e = document.body.appendChild($html('span'));
+  e.style.color = `rgb(from ${color} r g b / alpha)`;
+  let t = "#%02x%02x%02x", computed = getComputedStyle(e)?.color;
+  let c = computed?.match(/-?[0-9.]+(?:e[+-][0-9]+)?/g);
+  document.body.removeChild(e);
+  if (!e.style.color || !c) {
+    throw new TypeError("nf.color2hex: invalid color `" + color + "`");
+  }
+  for (let i = 0; i < c.length; i++) {
+    if (computed.includes('srgb') && i < 3) c[i] *= 255;	// srgb is 0-1
+    if (c[i] < 0) c[i] = 0;
+    // Opacity. Both FF & Chrome have a rounding error fixed by adding 0.002
+    if (i == 3) { t += "%02x"; c[3] = Math.round((+ c[3] + 0.002) * 255); }
+    else c[i] = Math.round(+ c[i]);
+  }
+  return nf.sprintf(t, ...c);
+}	// end of color2hex()	}}}
 
 
 // Count the direct ("own") keys of an object or else return undefined

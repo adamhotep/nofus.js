@@ -2,7 +2,22 @@
 
 Nofus is a very small JavaScript library providing utility functions designed to be used in UserScripts.
 
-Its functions all reside inside the `nf` object, though a few have "aliases" that exist on their own for easy access. One can be "installed" into Node.prototype.
+Its functions all reside inside the `nf` object, though a few have "aliases" as noted below.
+Items outside the `nf` object can be "installed", including one that embeds within `Node.prototype` (which is not installed by default).
+
+
+## Aliases
+
+Convenience aliases (shorthand functions outside the `nf` object) are also loaded by default. Search this page for `alias` or see the key below.
+
+### nf.alias
+
+This is an object whose keys enumerate the Nofus aliases, such as `w$`, which maps to `nf.wait$`. This object is not meant to be manipulated.
+
+### nf_config.alias
+
+If this is set *before* loading `nofus.js` and its value evaluates to false, the aliases will not be loaded. See `nf.installAliases` below.
+
 
 ## Functions
 
@@ -29,23 +44,34 @@ Usage: `nf.log(message, [substitution…])`
 * message (string): A message to pass to `console[log]`
 * substitution (any): Optional item(s) referred to by the message; see [Using string substitutions](https://developer.mozilla.org/en-US/docs/Web/API/console#using_string_substitutions)
 
+#### nf.logLevel
+
+The level at which logs appear in the console.
+
+Usage: `nf_config.logLevel = level`	*// run before loading nofus.js*
+Usage: `localStorage.setItem('nf_logLevel', level)`	*// persists per domain*
+Usage: `nf.setLogLevel(level …)`	*// details below*
+
+* level (string): One of `trace`, `debug`, `log`, `info`, `warn`, or `error`
+* Levels before the specified level in the above list are suppressed
+* For example, `nf.log("test")` will not show up given `nf.logLevel == "info"`
+* If `nf_config.logLevel` or `localStorage.nf_logLevel` are set, the lower is used
+* This otherwise defaults to `info`
+
+#### nf.setLogLevel
+
+Sets `nf.logLevel` to the lowest given valid level.
+
+Usage: `nf.setLogLevel(level …)`
+
+* level (string): One or more of `trace`, `debug`, `log`, `info`, `warn`, or `error`
+* Returns a boolean representing whether the level was set (though it may not have changed)
+
 #### nf.logLogo
 
 Add CSS to all `nf.log` and related messages that can include your logo.
 
 Usage: ``nf.logLogo = `background:0/1em url("${logo_url}") no-repeat; padding-left:3ex` ``
-
-
-#### nf.logLevel
-
-Set the level at which logs appear in the console.
-
-Usage: `localStorage.setItem('nf_logLevel', level)`	// persists per domain
-Usage: `nf.logLevel = level`
-
-* level (string): One of `trace`, `debug`, `log`, `info`, `warn`, or `error`
-* Levels before the specified level in the above list are suppressed
-* For example, `nf.log("test")` will not show up given `nf.logLevel == "info"`
 
 #### nf.trace
 #### nf.debug
@@ -120,7 +146,7 @@ Usage: `nf.wait$(css, action, [scope], [options])`
 
 #### w$
 
-(alias for the `nf.wait$`)
+(alias for `nf.wait$`)
 
 ### nf.style$
 
@@ -152,7 +178,7 @@ Usage: `nf.$html(object attributes …)`
 
 #### $html
 
-(alias for the `nf.$html`)
+(alias for `nf.$html`)
 
 
 ### nf.$text
@@ -168,7 +194,7 @@ This wraps `document.createTextNode`.
 
 #### $txt
 
-(alias for the `nf.$txt`)
+(alias for `nf.$txt`)
 
 
 ### nf.insertAfter
@@ -213,8 +239,25 @@ This wraps the `RegExp` constructor.
 
 #### nf.regExp
 
-(alias of `nf.regex`)
+(alias for `nf.regex`)
 
+
+### nf.split
+
+Split the given string into an array. By default, this defaults to using spacing as a separator. Leading/trailing separators will not create empty string members. Inspired by AWK's `split` and Perl's `qw`.
+
+Usage: `nf.split(str, [sep], [limit])`
+
+* str (string): A string to split into the array
+* sep (RegEx|string): The separator pattern to split with (optional, defaults to matching space characters)
+* limit (number): an optional maximum count of items in the array to create. If hit, remaining content is not split
+* Returns an array
+
+This is a wrapper for `Array.prototype.split()`.
+
+#### qw
+
+(alias for `nf.split` named after Perl's `qw` function)
 
 ### nf.sprintf
 
@@ -370,6 +413,19 @@ Usage: `nf.sleep(ms, [action, [args…]])`
 * args (any): The arguments to pass to the action function
 * Returns either a Promise or else undefined
 
+
+### nf.installAliases
+
+Install all aliases.
+
+Usage: `nf.installAliases()`
+
+
+### nf.uninstallAliases
+
+Remove all aliases.
+
+Usage: `nf.uninstallAliases()`
 
 
 ## Functions from nf.dialog

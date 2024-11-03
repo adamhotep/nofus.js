@@ -5,7 +5,9 @@
  *
  * A few utility functions have aliases that exist outside the `nf` object
  * for easy access. One function can be installed into Node.prototype.
- * Search this file for `alias` or `install` to find them.
+ * These are stored in the nf.alias object (or search this file for `alias`) and
+ * their installation can be suppressed by setting `nf_config = { alias:false }`
+ * BEFORE loading this script.
  *
  * Nofus is copyright 2017+ by Adam Katz. Apache License 2.0
  * https://github.com/adamhotep/nofus.js
@@ -14,9 +16,10 @@
 'use strict';
 
 // All items live in this object, though some are cloned outside it.
-const nf = { GM:{}, addon:{} }
+// These cloned items are listed in nf.aliases
+const nf = { GM:{}, addon:{}, alias:{} }
 
-nf.version = '0.5.20240916.0';
+nf.version = '0.6.20241202.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -57,6 +60,38 @@ nf.compareVersions = (versionA, versionB, cmp = '>') => {
 }	// end nf.compareVersions()	}}}
 
 
+// Define the valid log levels
+nf.logLevels = { trace:0, debug:1, log:2, info:3, warn:4, error:5 }
+
+// Set the log level to the lowest given level. True if set (even if unchanged).
+// nf.setLogLevel(string level ...) -> boolean	{{{
+nf.setLogLevel = (...levels) => {
+  let min = 9, level;
+  levels.forEach(l => {
+    let n = nf.logLevels[l];	// convert to a numeric level
+    if (typeof l != 'string') nf.debug("Ignoring non-string logLevel", l);
+    else if (isNaN(n)) throw new TypeError("Invalid logLevel: `" + l
+      + "` is not one of `" + Object.keys(nf.logLevels).join("`,`")
+      + "`\nFalling back to `info`");
+    else if (n < min) {
+      min = n;
+      level = l;
+    }
+  });
+  if (min < 9) nf.logLevel = level;
+  return min < 9;
+}	// end of nf.setLogLevel()	}}}
+
+// You can set `nf_config.logLevel` before loading this, or on a per-site basis
+// with e.g. `localStorage.setItem(nf_logLevel, 'debug')` (which you can even
+// run from the Developer Tools console), or after loading this with the
+// `nf.setLogLevel()` function defined directly above this comment.
+
+nf.logLevel = 'info';	// default log level
+// If present, use the lower of `nf_config.logLevel` and `localStorage.logLevel`
+nf.setLogLevel(typeof nf_config == 'object' && nf_config.logLevel,
+  localStorage?.getItem('nf_logLevel'));
+
 // Log if logLevel is sufficient. Includes time, logo, string substitution
 // nf.trace(string message, [* substitution...]) -> undefined	{{{
 // nf.debug(string message, [* substitution...]) -> undefined
@@ -68,32 +103,18 @@ nf.compareVersions = (versionA, versionB, cmp = '>') => {
 // https://developer.mozilla.org/en-US/docs/Web/API/console#using_string_substitutions
 //
 // Logs are suppressed if below nf.logLevel (see nf.logLevels)
-// You can set nf.logLevel in your script, or you can set it in your browser
-// for a specific site by opening the Developer Tools and typing something like
-//     localStorage.setItem(nf_logLevel, 'debug');
 //
 // The logo is defined by custom CSS in the `nf.logLogo` variable, such as
 //     nf.logLogo = `background:0/1em url('...') no-repeat; padding-left:3ex`;
-nf.logLevels = { trace:0, debug:1, log:2, info:3, warn:4, error:5 }
-if (localStorage) nf.logLevel = localStorage.getItem('nf_logLevel');
-nf.logLevel ??= 'info';
-if (isNaN(nf.logLevels[nf.logLevel])) {
-  console.error("Invalid localStorage.nf_logLevel: `" + nf.logLevel
-    + "` is not one of `" + Object.keys(nf.logLevels).join("`,`")
-    + "`\nFalling back to `info`");
-  nf.logLevel = 'info';
-}
+//
 Object.keys(nf.logLevels).forEach(type => {
-  if (nf.logLevels[type] >= nf.logLevels[nf.logLevel]) {
-    nf[type] = (...args) => {
-      let msg = '%o';
-      if (args.length == 0) msg = "";
-      else if (typeof args[0] == 'string') msg = args.shift();
-      console[type].call(this, '%c%s\n%c' + msg, 'font-family:sans-serif',
-        Date(), typeof nf.logLogo == 'string' ? nf.logLogo : '', ...args);
-    }
-  } else {
-    nf[type] = () => {}
+  nf[type] = (...args) => {
+    if (nf.logLevels[type] < nf.logLevels[nf.logLevel]) return;
+    let msg = '%o';
+    if (args.length == 0) msg = "";
+    else if (typeof args[0] == 'string') msg = args.shift();
+    console[type].call(this, '%c%s\n%c' + msg, 'font-family:sans-serif',
+      Date(), typeof nf.logLogo == 'string' ? nf.logLogo : '', ...args);
   }
 });	// end of nf.trace, nf.debug, nf.log, nf.info, nf.warn, nf.error }}}
 
@@ -157,8 +178,8 @@ nf.query$ = (css, scope = document, all) => {
 }
 nf.queryAll$ = (css, scope) => { return nf.query$(css, scope, 1) }
 // end nf.query$()	}}}
-const q$ = nf.query$;	// alias
-const qa$ = nf.queryAll$;	// alias
+nf.alias.q$ = nf.query$;
+nf.alias.qa$ = nf.queryAll$;
 
 
 // Wait for HTML elements matching CSS, run given function on them upon loading
@@ -224,7 +245,7 @@ nf.wait$ = (css, action, scope = document, options = { now:1 }) => {
   return observer;
 
 }	// end nf.wait$()	}}}
-const w$ = nf.wait$;	// alias
+nf.alias.w$ = nf.wait$;
 
 
 // Add to or else make and insert a new CSS <style> element
@@ -297,7 +318,7 @@ nf.$html = (...pairs) => {
 
   return elem;
 }	// end nf.$html()	}}}
-const $html = nf.$html;	// alias
+nf.alias.$html = nf.$html;
 
 
 // Make a text fragment
@@ -305,7 +326,7 @@ const $html = nf.$html;	// alias
 nf.$text = text => {
   return document.createTextNode(text);
 }	// end nf.$text()	}}}
-const $txt = nf.$text;	// alias
+nf.alias.$txt = nf.$text;
 
 
 // Insert given element after reference element, like ref.insertBefore(...)
@@ -372,6 +393,21 @@ nf.regex = nf.regExp = (pattern, flags = '') => {
   }
   return RegExp(pattern, flags);
 }	// end nf.regex()	}}}
+
+
+// Split a string by its spacing (or another separator) into an array
+// nf.split(str string, [RegExp|string sep], [number limit]) -> array	{{{
+nf.split = (str, sep = /\s+/, limit) => {
+  if (typeof sep == 'number' && limit == undefined) { // given only str & limit
+    limit = sep;
+    sep = /\s+/;
+  }
+  let a = nf.stringify(str).split(sep, limit);
+  if (a[0] == '') a.shift();
+  if (a[a.length - 1] == '') a.pop();
+  return a;
+}	/// end of nf.sq()	}}}
+nf.alias.qw = nf.split;
 
 
 // A nearly-complete C-style sprintf implementation
@@ -665,3 +701,24 @@ nf.sleep = (ms, action, ...args) => {
   if (typeof action == 'function') { return setTimeout(action, ms, ...args); }
   return new Promise(what => setTimeout(what, ms));
 }	// end nf.sleep()	}}}
+
+
+// Install all aliases
+// nf.installAliases() -> undefined	{{{
+nf.installAliases = () => {
+  Object.keys(nf.alias).forEach(alias => globalThis[alias] = nf.alias[alias]);
+}	// end of nf.installAliases()	}}}
+
+// Remove all aliases
+// nf.uninstallAliases() -> undefined	{{{
+nf.uninstallAliases = () => {
+  Object.keys(nf.alias).forEach(alias => delete globalThis[alias]);
+}	// end of nf.uninstallAliases()	}}}
+
+// Install aliases unless `nf_config.alias` is defined and evaluates to false
+if (typeof nf_config != 'object' || (nf_config.alias ?? 1)) {
+  nf.installAliases();
+} else {
+  nf.debug("Nofus aliases suppressed because `nf_config.alias` = ",
+    nf_config.alias);
+}

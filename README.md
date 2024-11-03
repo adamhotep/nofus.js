@@ -2,7 +2,7 @@
 
 Nofus is a very small JavaScript library providing utility functions designed to be used in UserScripts.
 
-Its functions all reside inside the `nf` object, though a few have "aliases" as noted below.
+Its functions all reside inside the `nf` object, though a few have "aliases" as noted [below](#Aliases).
 Items outside the `nf` object can be "installed", including one that embeds within `Node.prototype` (which is not installed by default).
 
 
@@ -107,11 +107,11 @@ Usage: `nf.GM.getMeta(key, [matcher])`
 
 ### nf.query$
 
-Get HTML element(s) matched by a given CSS selector.
+Get HTML element(s) matched by a given [CSS selector](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_selectors).
 
 Usage: `nf.query$(css, [scope], [all])`
 
-* css (string): A CSS selector like `a` or even `article > a[href^="http://example.com/"]`
+* css (string): A [CSS selector](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_selectors) like `a` or even `article > a[href^="http://example.com/"]`
 * scope (HTMLElement): An optional HTML element (or document) to limit the search to (defaults to `document`)
 * all (boolean): An optional boolean to denote this requests a list of all results rather than just the first (defaults to `false`)
 * Returns either an HTMLElement or an array of HTMLElements depending on `all`
@@ -130,11 +130,11 @@ This wraps `document.querySelector`, `document.querySelectorAll`, `element.query
 
 ### nf.wait$
 
-Wait for HTML elements matching given CSS selector, then run the given function on them.
+Wait for HTML elements matching given [CSS selector](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_selectors), then run the given function on them.
 
 Usage: `nf.wait$(css, action, [scope], [options])`
 
-* css (string): A CSS selector like `a` or even `article > a[href^="http://example.com/"]`
+* css (string): A [CSS selector](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_selectors) like `a` or even `article > a[href^="http://example.com/"]`
 * action (function): A function to be run on matching elements as they appear
 * scope (HTMLElement): An optional HTML element (or document) to limit the search to (defaults to `document`)
 * options (object): MutationObserver observe() function [options](https://developer.mozilla.org/docs/Web/API/MutationObserver/observe#options), plus one just for us.
@@ -300,7 +300,7 @@ Usage: `nf.sec2time(seconds, [units])`
 
 ### nf.sec2units
 
-Convert seconds to unit-based tie string (Yy Dd Hh Mm S.SSSs, e.g. 3d 16m).
+Convert seconds to unit-based time string (`Yy Dd Hh Mm S.SSSs`, e.g. `3d 14m`).
 
 Usage: `nf.sec2units(seconds)`
 
@@ -320,7 +320,7 @@ Usage: `nf.time2sec(time)`
 
 ### nf.units2sec
 
-Convert unit-based time (Yy Dd Hh Mm S.SSSs, e.g. 3d 16m) to seconds.
+Convert unit-based time (`Yy Dd Hh Mm S.SSSs`, e.g. `3d 14m`) to seconds.
 
 Usage: `nf.units2sec(time)`
 

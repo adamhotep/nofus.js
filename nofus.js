@@ -19,7 +19,7 @@
 // These cloned items are listed in nf.aliases
 const nf = { GM:{}, addon:{}, alias:{} }
 
-nf.version = '0.6.20241202.0';
+nf.version = '0.6.20241202.20241107';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -69,8 +69,9 @@ nf.setLogLevel = (...levels) => {
   let min = 9, level;
   levels.forEach(l => {
     let n = nf.logLevels[l];	// convert to a numeric level
-    if (typeof l != 'string') nf.debug("Ignoring non-string logLevel", l);
-    else if (isNaN(n)) throw new TypeError("Invalid logLevel: `" + l
+    if (typeof l != 'string') {
+      if (nf.debug != undefined) nf.debug("Ignoring non-string logLevel", l);
+    } else if (isNaN(n)) throw new TypeError("Invalid logLevel: `" + l
       + "` is not one of `" + Object.keys(nf.logLevels).join("`,`")
       + "`\nFalling back to `info`");
     else if (n < min) {

@@ -20,7 +20,7 @@
 }
 // done with sanity check }}}
 
-nf.addon.dialog = { version:'0.1.20240922.0',
+nf.addon.dialog = { version:'0.1.20241205.0',
   origin:document.currentScript?.src ?? 'nofus-dialog.js' }
 
 
@@ -118,7 +118,8 @@ nf.dialog = class {
   open(recenter = this.#recenter) {
     this.root.showModal();
     if (recenter) {
-      this.root.style.top = '-50vh';	// slide in from the top
+      // slide in from the top if given literal `true`
+      if (recenter === true) { this.root.style.top = '-50vh'; }
       nf.sleep(10, () => { this.#center() });
     }
   }

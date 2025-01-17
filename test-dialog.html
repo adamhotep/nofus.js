@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>Test page for nofus-dialog.js</title>
+    <script type="text/javascript" src="nofus.js"></script>
+    <script type="text/javascript" src="nofus-dialog.js"></script>
+    <style type="text/css">
+      /* Mimic Wikipedia's box around code to make it stand out more */
+      .nfDialog .nfDialogBody code {
+        border:1px dashed var(--bg2); background:var(--bg);
+      }
+
+      /* Extra custom formatting for labels that contain color inputs */
+      .nfDialog .nfDialogTabBody label {
+        vertical-align:bottom; margin:0 1ex; display:inline-block;
+        border-radius:1ex; padding:0.1ex 0.3ex; white-space:pre-wrap;
+      }
+      .nfDialog .nfDialogTabBody #colors > *:not([type="checkbox"]) {
+        width:16ex; text-align:center;
+      }
+      .nfDialog .nfDialogTabBody label input[type="color"] {
+        margin:0.5ex;
+      }
+      /* Make disabled color inputs more visually obvious */
+      .nfDialog .nfDialogTabBody label:not(:has(input[disabled])):hover {
+        background:oklch(from var(--bg) calc(l + 0.2) c h / calc(alpha - 0.5));
+      }
+      .nfDialog .nfDialogBody label:has(input[type="color"][disabled]) {
+        opacity:0.5;
+      }
+    </style>
+    <script type="text/javascript">
+
+      // Simple example: a smaller dialog that does not open by default
+      var simple = new nf.dialog("Simpler dialog", { open:false });
+      simple.append(`This very simple dialog example doesn't do anything,
+        but you can click anywhere (not otherwise clickable) to move it while
+        the other dialog requires using its titlebar. Also note how the
+        settings for the other dialog do not propagate to this one.`);
+      nf.movable(simple.root);	// You can move it from ~anywhere
+      simple.root.style.width = 'max(30vw, 20em)';	// narrower
+
+
+
+      // Main sample dialog: three tabs, does not recenter when reopened
+      var dialog = new nf.dialog("Sample dialog", { recenter:false });
+
+      // Tab One
+      var tab1 = dialog.tab("Tab One",
+        $html('p', { text:"There's more content here!" }));
+      tab1.append($html('p', { text:`By default, Nofus Dialog will focus the
+          primary tab, but as you'll see in the code implementing this demo,
+          we changed that with ` },
+        $html('code', { text: 'demo.focus()' }),
+        $txt(` (where `),
+        $html('code', { text: 'demo' }),
+        $txt(` is the object returned from creating the "Demo" tab).`)));
+
+      // Tab Two: Demo
+      var demo = dialog.tab("Demo",
+        $html('p', { text:"This is a demo of Nofus Dialog." }));
+      demo.append($html('p', { text:`Grab the titlebar and move this
+          dialog around. Try the other tabs for more content.` }),
+        $html('p', $txt("Tabs aren't necessary, as you can see in the "),
+          demobutton = $html('button', { type:'button', text:"Simple Dialog" }),
+          $txt(" for example.")));
+      demobutton.addEventListener('click', e => simple.open());
+      demo.focus();
+
+      // Tab Three: Settings
+      var settings = dialog.tab("Settings",
+        $html('p', { text:"Color configuration demo:" }));
+
+      var colors = {}
+      var color_picker = settings.appendChild($html('div', { id:'colors' }));
+      var set_colors = e => {
+        let bg2 = colors.bg2.disabled ? undefined : colors.bg2.value;
+        let fg = colors.fg.disabled ? undefined : colors.fg.value;
+        dialog.setColors(colors.bg.value, bg2, fg);
+        if (colors.bg2.disabled) {
+          colors.bg2.value = nf.color2hex(dialog.getColor('bg2'));
+        }
+        if (colors.fg.disabled) {
+          colors.fg.value = nf.color2hex(dialog.getColor('fg'));
+        }
+      }
+      nf.wait$('body', body => {
+        ['bg', 'bg2', 'fg'].forEach(color => {
+          let c = dialog.getColor(color);
+          let cc = nf.color2hex(c);
+          colors[color] = $html('input', { type:'color', value:cc });
+          let name = "Accent\n";
+          if (color == "bg") name = "Background\n";
+          else if (color == "fg") name = "Text\n";
+          color_picker.append($html('label', { text:name }, colors[color]));
+          colors[color].addEventListener('input', set_colors);
+        });
+
+        color_picker.append($html('label', { text:"Titlebar\n" },
+            titlebar = $html('input', { type:'color', disabled:true })));
+
+        let auto_bg2 = $html('input', { type:'checkbox', id:'auto_bg2' });
+        let auto_bg2_listener = e => {
+          colors.bg2.disabled = auto_bg2.checked;
+          set_colors();
+        };
+        auto_bg2.addEventListener('change', auto_bg2_listener);
+        auto_bg2.checked = true;
+        auto_bg2_listener();
+        color_picker.append($html('br'), $html('label'),
+          $html('label', { text:"auto "}, auto_bg2));
+        let auto_fg = $html('input', { type:'checkbox', id:'auto_fg' });
+        let auto_fg_listener = e => {
+          colors.fg.disabled = auto_fg.checked;
+          set_colors();
+        };
+        auto_fg.addEventListener('change', auto_fg_listener);
+        auto_fg.checked = true;
+        auto_fg_listener();
+        color_picker.append($html('label', { text:"auto "},
+          auto_fg));
+
+        color_picker.append($html('label', { text:"same " },
+            tbar_trans = $html('input', { type:'checkbox', checked:true }))
+        );
+        head = q$('.nfDialogHead', dialog.root);
+        tbar_sync = () => {
+          head.style.backgroundColor = titlebar.value;
+        }
+        titlebar.addEventListener('input', tbar_sync);
+        titlebar.value = nf.color2hex(dialog.getColor('bg'));
+        tbar_trans.addEventListener('change', e => {
+          titlebar.disabled = e.target.checked;
+          if (e.target.checked) head.style.backgroundColor = 'transparent';
+          else if (e.target.been_here) { tbar_sync(); }
+          else { titlebar.click(); }
+          e.target.been_here = true;
+        });
+
+      });
+    </script>
+  </head>
+  <body>
+    <h1>Test page for Nofus Dialog</h1>
+    <p>The content of this page doesn't really matter. The page itself is intentionally unstyled, though you can tinker with that as much as you want. CSS from the document body shouldn't be inherited by the dialog due to <code>all:revert</code> with 0-2-0 specificity. That means you should be able to drop this dialog into your website or <a href="https://en.wikipedia.org/wiki/Userscript">userscript</a> without issues. To learn more about the dialog, open it up with the following buttons. (This page is set to launch the dialog upon loading, but that's configurable. Almost everything is configurable.)</p>
+    <p>
+      <button type="button" onclick='dialog.open()'>Open Dialog</button>
+      <button type="button" onclick='simple.open()'>Open Simpler Dialog</button>
+    </p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse sodales erat eros, vel efficitur mauris bibendum eget. Praesent suscipit congue nisl efficitur tempor. Nullam at <a href="https://en.wikipedia.org/wiki/Lorem_ipsum">dignissim</a> nibh, a bibendum nisi. Suspendisse at faucibus tortor. Sed pellentesque, arcu scelerisque accumsan ornare, purus dui luctus dui, eget venenatis metus orci vitae dolor.</p>
+    <p>Nullam malesuada rutrum volutpat. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Praesent sollicitudin tellus non nibh auctor, at convallis nisi elementum. Mauris sit amet quam sed justo feugiat volutpat sed nec tellus. Cras massa lorem, mollis ut sagittis in, ullamcorper eget sapien. Nullam lobortis nunc est, et efficitur ex pretium ac. Duis aliquam accumsan felis non eleifend. Proin eu semper ligula. Vivamus commodo suscipit feugiat. Nullam at enim tempor, facilisis sem sed, lacinia arcu.</p>
+  </body>
+</html>

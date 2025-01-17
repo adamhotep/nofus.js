@@ -12,7 +12,7 @@
 
 // Sanity check: Ensure nofus.js is already loaded {{{
 {
-  const minimumVersion = '0.5';	// minimum nofus.js version
+  const minimumVersion = '0.7';	// minimum nofus.js version
   if (typeof nf != 'object' || typeof nf.compareVersions != 'function'
   || !nf.compareVersions(nf.version, minimumVersion, '>='))
     throw new ReferenceError(`Load nofus.js version ${minimumVersion}+ first!`);
@@ -20,7 +20,7 @@
 }
 // done with sanity check }}}
 
-nf.addon.dialog = { version:'0.1.20241205.0',
+nf.addon.dialog = { version:'0.2.20250117.0',
   origin:document.currentScript?.src ?? 'nofus-dialog.js' }
 
 
@@ -35,7 +35,7 @@ nf.dialog = class {
 // * resetCSS (boolean): Reset all CSS for within the dialog (default = true)
   constructor(title, attributes = {}) {
     let root = this.root;
-    this.setColors('#000', '#eee', '#bbb');
+    this.setColors('#eee', '#bbb', '#000');
 
     if (typeof attributes?.id == 'string') root.id = attributes.id;
     if (attributes.recenter != undefined) this.#recenter = attributes.recenter;
@@ -82,11 +82,16 @@ nf.dialog = class {
 
   #recenter = true;
 
-  // Set the dialog's primary foreground and background colors
-  // Background2 defaults to being a little darker/lighter than background.
-  // .setColors(string foreground, string background, [string background2])
-  setColors(foreground, background, background2) {
+  // Set the dialog's primary background and foreground colors
+  // .setColors(string background, [string background2], [string foreground])
+  setColors(background, background2, foreground) {
+    // default background2 to being a little darker/lighter than background.
     background2 ??= `oklch(from ${background} rem(l + .8, 1) c h / alpha)`;
+    if (foreground == undefined) {
+      let [r, g, b] = nf.color2hex(background, 'rgb');
+      // default foreground: white or black based on calculated luminance
+      foreground = .2126 * r + .7152 * g + .0722 * b < 128 ? "#fff" : "#000";
+    }
     this.root.style.setProperty('--fg', foreground);
     this.root.style.setProperty('--bg', background);
     this.root.style.setProperty('--bg2', background2);
@@ -172,7 +177,7 @@ nf.dialog = class {
     .nfDialog.resetCSS * { all:revert; } /* specificity 0-2-0 */
     .nfDialog, .nfDialog.resetCSS {
       font:1rem sans-serif; color:var(--fg);
-      text-shadow: 0 0 .5ex rgb(from var(--fg)
+      text-shadow: 0 0 .5ex rgb(from currentColor
         calc(255 - r) calc(255 - g) calc(255 - b) / alpha);
       background-image:linear-gradient(to right, var(--bg), var(--bg2));
       border:none; border-radius:.5rem; margin:0; padding:0;
@@ -201,7 +206,7 @@ nf.dialog = class {
     .nfDialog .nfDialogTab {
       padding:.5ex; margin:.5ex; border-radius:.5ex .5ex 0 0;
       border:1px solid var(--bg); background:var(--bg2);
-      border-bottom-color:transparent;
+      border-bottom-color:transparent; user-select:none;
     }
     .nfDialog .nfDialogTab:is(.active, :hover)  {
       border-color:var(--bg2) var(--bg2) transparent var(--bg2);

@@ -90,6 +90,7 @@ Usage: `nf.GM.getMetas(key, [matcher])`
 
 * key (string): The UserScript meta block key (without the `@`), e.g. `include`
 * matcher (RegExp): An optional regular expression values must match
+* Requires `@grant GM.info` and/or `@grant GM_info` in your userscript metadata
 * Returns either an array of strings or else null
 
 
@@ -102,6 +103,7 @@ Usage: `nf.GM.getMeta(key, [matcher])`
 * key (string): The UserScript meta block key (without the `@`), e.g. `include`
 * matcher (RegExp): An optional regular expression values must match
   * Unlike `nf.GM.getMetas()`, match groups are returned
+* Requires `@grant GM.info` and/or `@grant GM_info` in your userscript metadata
 * Returns either a string or else `undefined`
 
 

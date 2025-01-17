@@ -19,7 +19,7 @@
 // These cloned items are listed in nf.aliases
 const nf = { GM:{}, addon:{}, alias:{} }
 
-nf.version = '0.6.20241202.20241107';
+nf.version = '0.7.20250117.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -69,8 +69,10 @@ nf.setLogLevel = (...levels) => {
   let min = 9, level;
   levels.forEach(l => {
     let n = nf.logLevels[l];	// convert to a numeric level
-    if (typeof l != 'string') {
-      if (nf.debug != undefined) nf.debug("Ignoring non-string logLevel", l);
+    if (l === false || l === null) {
+      false;
+    } else if (typeof l != 'string') {
+      console.debug("Ignoring non-string logLevel", l);
     } else if (isNaN(n)) throw new TypeError("Invalid logLevel: `" + l
       + "` is not one of `" + Object.keys(nf.logLevels).join("`,`")
       + "`\nFalling back to `info`");
@@ -655,10 +657,14 @@ nf.hash_hex = (str, seed) => {
 }	// end nf.hash_hex()	}}}
 
 
-// Convert any CSS-valid color to #RRGGBB[AA] format
+// Convert any CSS-valid color to #RRGGBB[AA] or (red, green, blue, [alpha])
 // WARNING: this uses the document body, which may not yet be loaded!
-// nf.color2hex(string color) -> string	{{{
-nf.color2hex = (color) => {
+// nf.color2hex(string color, [string format]) -> string|array	{{{
+// Formats are as follows:
+// * 'rgb' outputs an array of red, green, blue (all 0-255), and alpha (0-1)
+// * 'srgb' outputs as 'rgb' but all values use a 0-1 scale
+// * 'hex' (default) outputs a string for #RRGGBB or #RRGGBBAA
+nf.color2hex = (color, format = 'hex') => {
   let e = document.body.appendChild($html('span'));
   e.style.color = `rgb(from ${color} r g b / alpha)`;
   let t = "#%02x%02x%02x", computed = getComputedStyle(e)?.color;
@@ -674,6 +680,8 @@ nf.color2hex = (color) => {
     if (i == 3) { t += "%02x"; c[3] = Math.round((+ c[3] + 0.002) * 255); }
     else c[i] = Math.round(+ c[i]);
   }
+  if (format == 'rgb') { if (c[3]) c[3] /= 256; return c; }
+  if (format == 'srgb') return c.map(x => x/256);
   return nf.sprintf(t, ...c);
 }	// end of color2hex()	}}}
 

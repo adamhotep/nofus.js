@@ -374,12 +374,16 @@ See `nf.hash` above. This simply sets the radix to 16.
 
 ### nf.color2hex
 
-Convert any CSS-valid color into #RRGGBB[AA] format
+Convert a CSS color into a string for #RRGGBB[AA] or an array for (r, g, b, [a])
 
-Usage: `nf.color2hex(color)`
+Usage: `nf.color2hex(color, [format])`
 
 * color (string): A string representing a CSS [color value](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value)
-* Returns a string representing the hexadecimal code of the given color
+* format (string): One of:
+  * `hex`: Returns a string of the given color's hexadecimal code (default)
+  * `rgb`: Returns an array of red, green, blue (all 0-255), and alpha (0-1)
+  * `srgb`: Returns an array of red, green, blue, and alpha (all 0-1)
+* Returns either a string or an array of numbers
 
 
 ### nf.objKeys
@@ -466,13 +470,13 @@ Usage: `.title([title])`
 
 #### .setColors
 
-Set the dialog's primary foreground and background colors.
+Set the dialog's primary background and foreground colors.
 
-Usage: `.setColors(string foreground, string background, [string background2])`
+Usage: `.setColors(string background, [string background2], [string foreground])`
 
-* foreground (string): The text [color_value](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value)
-* background (string): The background color_value
-* background2 (string): A second background color_value (defaults to a darker version of background)
+* background (string): The background [color_value](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value)
+* background2 (string): A background accent color_value (defaults to a darker or lighter version of background)
+* foreground (string): The text color_value (defaults to white given a darker background or black given a lighter background)
 * Returns undefined
 
 

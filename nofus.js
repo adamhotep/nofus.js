@@ -19,7 +19,7 @@
 // These cloned items are listed in nf.aliases
 const nf = { GM:{}, addon:{}, alias:{} }
 
-nf.version = '0.7.20250117.0';
+nf.version = '0.7.20250117.1';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -272,7 +272,7 @@ nf.style$ = (css, where = document) => {
 // * The `attributes` object sets HTML attributes except as follows:
 //   * `text` & `textContent` set content (with both, `text` is an attribute)
 //   * `className` sets `class` (with both, both are attributes)
-//   * `value` sets the Javascript value, not the HTML attribute
+//   * `value` & `checked` set Javascript properties, not HTML attributes
 //   * accepts `dataset.fooBar` as `data-foo-bar`
 //   * `nodeName` sets the element name, not an attribute
 nf.$html = (...pairs) => {
@@ -289,7 +289,7 @@ nf.$html = (...pairs) => {
     }
     Object.keys(attributes).forEach(key => {
       let value = attributes[key]?.toString();
-      if (key == 'value') {
+      if (key == 'value' || key == 'checked') {
         elem[key] = value;
       } else if (isKey(key, 'textContent', 'text')) {
         elem.textContent = value;
@@ -680,8 +680,8 @@ nf.color2hex = (color, format = 'hex') => {
     if (i == 3) { t += "%02x"; c[3] = Math.round((+ c[3] + 0.002) * 255); }
     else c[i] = Math.round(+ c[i]);
   }
-  if (format == 'rgb') { if (c[3]) c[3] /= 256; return c; }
-  if (format == 'srgb') return c.map(x => x/256);
+  if (format == 'rgb') { if (c[3]) c[3] /= 255; return c; }
+  if (format == 'srgb') return c.map(x => x/255);
   return nf.sprintf(t, ...c);
 }	// end of color2hex()	}}}
 
@@ -728,6 +728,6 @@ nf.uninstallAliases = () => {
 if (typeof nf_config != 'object' || (nf_config.alias ?? 1)) {
   nf.installAliases();
 } else {
-  nf.debug("Nofus aliases suppressed because `nf_config.alias` = ",
+  nf.debug("Nofus aliases suppressed because `nf_config.alias` =",
     nf_config.alias);
 }

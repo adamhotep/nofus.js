@@ -20,7 +20,7 @@
 }
 // done with sanity check }}}
 
-nf.addon.dialog = { version:'0.2.20250117.1',
+nf.addon.dialog = { version:'0.2.20250118.0',
   origin:document.currentScript?.src ?? 'nofus-dialog.js' }
 
 
@@ -35,7 +35,7 @@ nf.dialog = class {
 // * resetCSS (boolean): Reset all CSS for within the dialog (default = true)
   constructor(title, attributes = {}) {
     let root = this.root;
-    this.setColors('light-dark(#eee, #222)', 'light-dark(#bbb, #555)',
+    this.setColors('light-dark(#eee, #222)', 'light-dark(#bbb, #666)',
       'light-dark(#000, #fff)');
 
     if (typeof attributes?.id == 'string') root.id = attributes.id;
@@ -92,7 +92,8 @@ nf.dialog = class {
       foreground ??= lum > .63 ? "#000" : "#fff";
       lum = lum > .25 ? -.3 : .25;
       // defaults to a the background but a little closer to the foreground
-      background2 ??= `oklch(from ${background} calc(l + ${lum}) c h / alpha)`;
+      background2 ??=
+        nf.color2hex(`oklch(from ${background} calc(l + ${lum}) c h / alpha)`);
     }
     this.root.style.setProperty('--fg', foreground);
     this.root.style.setProperty('--bg', background);
@@ -179,12 +180,15 @@ nf.dialog = class {
     .nfDialog.resetCSS * { all:revert; } /* specificity 0-2-0 */
     .nfDialog, .nfDialog.resetCSS {
       font:1rem sans-serif; color:var(--fg);
-      text-shadow: 0 0 .5ex rgb(from currentColor
-        calc(255 - r) calc(255 - g) calc(255 - b) / alpha);
+      text-shadow: 0 0 .3ex Canvas;
       background-image:linear-gradient(to right, var(--bg), var(--bg2));
       border:none; border-radius:.5rem; margin:0; padding:0;
       position:fixed; transition:left .1s ease-out, top .1s ease-out;
       left:29vw; width:max(42vw, 50rem);
+    }
+    .nfDialog a, .nfDialog.resetCSS a {
+      text-shadow: 0 0 .3ex rgb(from currentColor
+        calc(255 - r) calc(255 - g) calc(255 - b) / alpha);
     }
     .nfDialog .nfDialogContent { padding:0 1rem 1rem; }
     .nfDialog .nfDialogHead {

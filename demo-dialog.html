@@ -6,6 +6,8 @@
     <script type="text/javascript" src="nofus.js"></script>
     <script type="text/javascript" src="nofus-dialog.js"></script>
     <style type="text/css">
+      :root { color-scheme:light dark; }
+
       /* Mimic Wikipedia's box around code to make it stand out more */
       .nfDialog .nfDialogBody code {
         border:1px dashed var(--bg2); background:var(--bg);
@@ -103,9 +105,9 @@
         let auto_bg2 = $html('input', { type:'checkbox', id:'auto_bg2' });
         let auto_bg2_listener = e => {
           colors.bg2.disabled = auto_bg2.checked;
-          set_colors();
+          if (e) set_colors();
         };
-        auto_bg2.addEventListener('change', auto_bg2_listener);
+        auto_bg2.addEventListener('input', auto_bg2_listener);
         auto_bg2.checked = true;
         auto_bg2_listener();
         color_picker.append($html('br'), $html('label'),
@@ -113,9 +115,9 @@
         let auto_fg = $html('input', { type:'checkbox', id:'auto_fg' });
         let auto_fg_listener = e => {
           colors.fg.disabled = auto_fg.checked;
-          set_colors();
+          if (e) set_colors();
         };
-        auto_fg.addEventListener('change', auto_fg_listener);
+        auto_fg.addEventListener('input', auto_fg_listener);
         auto_fg.checked = true;
         auto_fg_listener();
         color_picker.append($html('label', { text:"auto "},

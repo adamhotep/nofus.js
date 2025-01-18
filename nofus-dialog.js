@@ -20,7 +20,7 @@
 }
 // done with sanity check }}}
 
-nf.addon.dialog = { version:'0.2.20250117.0',
+nf.addon.dialog = { version:'0.2.20250117.1',
   origin:document.currentScript?.src ?? 'nofus-dialog.js' }
 
 
@@ -35,7 +35,8 @@ nf.dialog = class {
 // * resetCSS (boolean): Reset all CSS for within the dialog (default = true)
   constructor(title, attributes = {}) {
     let root = this.root;
-    this.setColors('#eee', '#bbb', '#000');
+    this.setColors('light-dark(#eee, #222)', 'light-dark(#bbb, #555)',
+      'light-dark(#000, #fff)');
 
     if (typeof attributes?.id == 'string') root.id = attributes.id;
     if (attributes.recenter != undefined) this.#recenter = attributes.recenter;
@@ -85,12 +86,13 @@ nf.dialog = class {
   // Set the dialog's primary background and foreground colors
   // .setColors(string background, [string background2], [string foreground])
   setColors(background, background2, foreground) {
-    // default background2 to being a little darker/lighter than background.
-    background2 ??= `oklch(from ${background} rem(l + .8, 1) c h / alpha)`;
-    if (foreground == undefined) {
+    if (background2 == undefined || foreground == undefined) {
       let [r, g, b] = nf.color2hex(background, 'rgb');
-      // default foreground: white or black based on calculated luminance
-      foreground = .2126 * r + .7152 * g + .0722 * b < 128 ? "#fff" : "#000";
+      let lum = r / 1199 + g / 357 + b / 3532;	// luminance (0-1)
+      foreground ??= lum > .63 ? "#000" : "#fff";
+      lum = lum > .25 ? -.3 : .25;
+      // defaults to a the background but a little closer to the foreground
+      background2 ??= `oklch(from ${background} calc(l + ${lum}) c h / alpha)`;
     }
     this.root.style.setProperty('--fg', foreground);
     this.root.style.setProperty('--bg', background);
@@ -193,7 +195,7 @@ nf.dialog = class {
       float:right; margin-top:.33rem; font:3ex monospace;
     }
     .nfDialog[open]::backdrop {
-      background-color:rgb(from var(--fg) r g b / calc(alpha - 1/3));
+      background-color:oklch(from var(--bg) .5 0 h / calc(alpha - 1/3));
       backdrop-filter: blur(1.7px); cursor:initial;
     }
     .nfDialog .nfDialogBody { max-height:77vh; overflow:auto; }

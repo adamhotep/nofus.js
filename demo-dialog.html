@@ -61,7 +61,9 @@
 
       // Tab Two: Demo
       var demo = dialog.tab("Demo",
-        $html('p', { text:"This is a demo of Nofus Dialog." }));
+        $html('p', { text:"This is a demo of " }, $html('a',
+          { text:"Nofus", href:"https://github.com/adamhotep/nofus.js" }),
+          $txt(" Dialog.")));
       demo.append($html('p', { text:`Grab the titlebar and move this
           dialog around. Try the other tabs for more content.` }),
         $html('p', $txt("Tabs aren't necessary, as you can see in the "),

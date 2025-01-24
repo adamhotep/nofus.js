@@ -35,8 +35,7 @@ nf.dialog = class {
 // * resetCSS (boolean): Reset all CSS for within the dialog (default = true)
   constructor(title, attributes = {}) {
     let root = this.root;
-    this.setColors('light-dark(#eee, #333)', 'light-dark(#bbb, #000)',
-      'light-dark(#000, #fff)');
+    this.setColors('light-dark(#eee, #333)', 'light-dark(#bbb, #000)');
 
     if (typeof attributes?.id == 'string') root.id = attributes.id;
     if (attributes.recenter != undefined) this.#recenter = attributes.recenter;

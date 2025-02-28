@@ -157,7 +157,7 @@ Add to or else make and insert a new CSS `<style>` element
 Usage: `nf.style$(css, [where])`
 
 * css (string): The stylesheet content to add
-* where (HTMLDocument|HTMLStyleElement): Either an HTML document or else an existing `<style>` element (default = `document`)
+* where (HTMLDocument|HTMLElement,HTMLStyleElement|XMLDocument): Either an HTML/XML document, an HTMLElement, or else an existing `<style>` element (default = `document`)
 * Returns the HTMLStyleElement
 
 

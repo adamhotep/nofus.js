@@ -19,7 +19,7 @@
 // These cloned items are listed in nf.aliases
 const nf = { GM:{}, addon:{}, alias:{} }
 
-nf.version = '0.7.20250117.1';
+nf.version = '0.7.20250228.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -252,15 +252,17 @@ nf.alias.w$ = nf.wait$;
 
 
 // Add to or else make and insert a new CSS <style> element
-// nf.style$(string css, [HTMLDocument|HTMLStyleElement where]) -> HTMLStyleElement	{{{
+// nf.style$(string css, [HTMLDocument|HTMLElement|HTMLStyleElement|XMLDocument where]) -> HTMLStyleElement	{{{
 nf.style$ = (css, where = document) => {
   if (where instanceof HTMLStyleElement) {
     where.textContent += css;
     return where;
+  } else if (where?.firstChild instanceof SVGElement) {
+    where = where.firstChild;
+  } else if (where?.head instanceof HTMLHeadElement) {
+    where = where.head;
   }
-  return where.head.appendChild(
-    nf.$html('style', { type:'text/css', text:css })
-  );
+  return where.appendChild(nf.$html('style', { text:css }));
 }	// end nf.style$()	}}}
 
 
@@ -675,7 +677,8 @@ nf.color2hex = (color, format = 'hex') => {
   }
   for (let i = 0; i < c.length; i++) {
     if (computed.includes('srgb') && i < 3) c[i] *= 255;	// srgb is 0-1
-    if (c[i] < 0) c[i] = 0;
+    if (c[i] > 255)	c[i] = 255;
+    else if (c[i] < 0)	c[i] = 0;
     // Opacity. Both FF & Chrome have a rounding error fixed by adding 0.002
     if (i == 3) { t += "%02x"; c[3] = Math.round((+ c[3] + 0.002) * 255); }
     else c[i] = Math.round(+ c[i]);

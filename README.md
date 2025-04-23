@@ -383,6 +383,7 @@ Usage: `nf.color2hex(color, [format])`
 * color (string): A string representing a CSS [color value](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value)
 * format (string): One of:
   * `hex`: Returns a string of the given color's hexadecimal code (default)
+  * `num`: Returns a number representing the given color's hexadecimal code
   * `rgb`: Returns an array of red, green, blue (all 0-255), and alpha (0-1)
   * `srgb`: Returns an array of red, green, blue, and alpha (all 0-1)
 * Returns either a string or an array of numbers

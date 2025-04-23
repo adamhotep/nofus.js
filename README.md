@@ -49,13 +49,12 @@ Usage: `nf.log(message, [substitution…])`
 The level at which logs appear in the console.
 
 Usage: `nf_config.logLevel = level`	*// run before loading nofus.js*\
-Usage: `localStorage.setItem('nf_logLevel', level)`	*// persists per domain*\
 Usage: `nf.setLogLevel(level …)`	*// details below*
 
 * level (string): One of `trace`, `debug`, `log`, `info`, `warn`, or `error`
 * Levels before the specified level in the above list are suppressed
 * For example, `nf.log("test")` will not show up given `nf.logLevel == "info"`
-* If `nf_config.logLevel` or `localStorage.nf_logLevel` are set, the lower is used
+* `nf_config.logLevel` is used if it is set
 * This otherwise defaults to `info`
 
 #### nf.setLogLevel

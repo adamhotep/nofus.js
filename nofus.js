@@ -85,19 +85,11 @@ nf.setLogLevel = (...levels) => {
   return min < 9;
 }	// end of nf.setLogLevel()	}}}
 
-// You can set `nf_config.logLevel` before loading this, or on a per-site basis
-// with e.g. `localStorage.setItem(nf_logLevel, 'debug')` (which you can even
-// run from the Developer Tools console), or after loading this with the
-// `nf.setLogLevel()` function defined directly above this comment.
+// You can set `nf_config.logLevel` before loading this,
+// or after loading this with the `nf.setLogLevel()` function defined above.
 
 nf.logLevel = 'info';	// default log level
-// If present, use the lower of `nf_config.logLevel` and `localStorage.logLevel`
-try {	// sandboxes may reject https://meta.stackoverflow.com/a/345386/519360
-  nf.setLogLevel(typeof nf_config == 'object' && nf_config.logLevel,
-    localStorage.getItem('nf_logLevel'));
-} catch(e) {
-  nf.setLogLevel(typeof nf_config == 'object' && nf_config.logLevel);
-}
+nf.setLogLevel(typeof nf_config == 'object' && nf_config.logLevel);
 
 // Log if logLevel is sufficient. Includes time, logo, string substitution
 // nf.trace(string message, [* substitution...]) -> undefined	{{{

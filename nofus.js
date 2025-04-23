@@ -19,7 +19,7 @@
 // These cloned items are listed in nf.aliases
 const nf = { GM:{}, addon:{}, alias:{} }
 
-nf.version = '0.7.20250422.0';
+nf.version = '0.7.20250422.1';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -92,11 +92,12 @@ nf.setLogLevel = (...levels) => {
 
 nf.logLevel = 'info';	// default log level
 // If present, use the lower of `nf_config.logLevel` and `localStorage.logLevel`
-nf.setLogLevel(typeof nf_config == 'object' && nf_config.logLevel,
-  (x => { // may be barred via sandbox; https://meta.stackoverflow.com/a/345386
-    try { return localStorage?.getItem('nf_logLevel') }
-    catch(e) { return null }
-  })());
+try {	// sandboxes may reject https://meta.stackoverflow.com/a/345386/519360
+  nf.setLogLevel(typeof nf_config == 'object' && nf_config.logLevel,
+    localStorage.getItem('nf_logLevel'));
+} catch(e) {
+  nf.setLogLevel(typeof nf_config == 'object' && nf_config.logLevel);
+}
 
 // Log if logLevel is sufficient. Includes time, logo, string substitution
 // nf.trace(string message, [* substitution...]) -> undefined	{{{

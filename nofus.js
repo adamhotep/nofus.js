@@ -19,7 +19,7 @@
 // These cloned items are listed in nf.aliases
 const nf = { GM:{}, addon:{}, alias:{} }
 
-nf.version = '0.7.20250422.1';
+nf.version = '0.7.20250422.2';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -683,7 +683,7 @@ nf.color2hex = (color, format = 'hex') => {
   if (format == 'rgb') { if (c[3]) c[3] /= 255; return c; }
   if (format == 'srgb') return c.map(x => x/255);
   let out = nf.sprintf(t, ...c);
-  if (format.startsWith('num') or format == Number) return ("0x" + out) / 1;
+  if (format.startsWith('num') || format == Number) return ("0x" + out) / 1;
   return '#' + out;
 }	// end of color2hex()	}}}
 

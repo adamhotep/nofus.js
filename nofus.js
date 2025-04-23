@@ -19,7 +19,7 @@
 // These cloned items are listed in nf.aliases
 const nf = { GM:{}, addon:{}, alias:{} }
 
-nf.version = '0.7.20250228.0';
+nf.version = '0.7.20250422.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -93,7 +93,10 @@ nf.setLogLevel = (...levels) => {
 nf.logLevel = 'info';	// default log level
 // If present, use the lower of `nf_config.logLevel` and `localStorage.logLevel`
 nf.setLogLevel(typeof nf_config == 'object' && nf_config.logLevel,
-  localStorage?.getItem('nf_logLevel'));
+  (x => { // may be barred via sandbox; https://meta.stackoverflow.com/a/345386
+    try { return localStorage?.getItem('nf_logLevel') }
+    catch(e) { return null }
+  })());
 
 // Log if logLevel is sufficient. Includes time, logo, string substitution
 // nf.trace(string message, [* substitution...]) -> undefined	{{{
@@ -666,10 +669,11 @@ nf.hash_hex = (str, seed) => {
 // * 'rgb' outputs an array of red, green, blue (all 0-255), and alpha (0-1)
 // * 'srgb' outputs as 'rgb' but all values use a 0-1 scale
 // * 'hex' (default) outputs a string for #RRGGBB or #RRGGBBAA
+// * 'num' outputs an integer representing the hex code
 nf.color2hex = (color, format = 'hex') => {
   let e = document.body.appendChild($html('span'));
   e.style.color = `rgb(from ${color} r g b / alpha)`;
-  let t = "#%02x%02x%02x", computed = getComputedStyle(e)?.color;
+  let t = "%02x%02x%02x", computed = getComputedStyle(e)?.color;
   let c = computed?.match(/-?[0-9.]+(?:e[+-][0-9]+)?/g);
   document.body.removeChild(e);
   if (!e.style.color || !c) {
@@ -685,7 +689,9 @@ nf.color2hex = (color, format = 'hex') => {
   }
   if (format == 'rgb') { if (c[3]) c[3] /= 255; return c; }
   if (format == 'srgb') return c.map(x => x/255);
-  return nf.sprintf(t, ...c);
+  let out = nf.sprintf(t, ...c);
+  if (format.startsWith('num') or format == Number) return ("0x" + out) / 1;
+  return '#' + out;
 }	// end of color2hex()	}}}
 
 

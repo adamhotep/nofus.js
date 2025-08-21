@@ -164,10 +164,11 @@ Usage: `nf.style$(css, [where])`
 
 Make an HTML node with attributes and children.
 
-Usage: `nf.$html(nodeName, [attributes], [child] …)`
+Usage: `nf.$html(nodeName[.className…], [attributes], [child] …)`
 Usage: `nf.$html(object attributes …)`
 
 * nodeName (string): The tag name of the HTML element to create
+* className (string): nodeName is split on dots to add classes
 * attributes (object): A quick way to define attributes as an object, e.g. `{href: "http://example.com", class: "external"}`. These are HTML attributes except:
   * `nodeName` sets the element name (and alleviates the need for the nodeName argument) and is not an attribute
   * `text` & `textContent` set content (with both, `text` is an attribute)

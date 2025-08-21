@@ -19,7 +19,7 @@
 // These cloned items are listed in nf.aliases
 const nf = { GM:{}, addon:{}, alias:{} }
 
-nf.version = '0.7.20250422.3';
+nf.version = '0.7.20250818.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -267,6 +267,7 @@ nf.style$ = (css, where = document) => {
 // NOTE: attributes are HTML, not JavaScript (they were JS in nofus.js < 0.5):
 // * Accepts HTML elements as children
 // * nodeName is actually optional if attributes.nodeName exists
+// * nodeName can be dotted to denote classes: `div.center.nobr` has two classes
 // * The `attributes` object sets HTML attributes except as follows:
 //   * `text` & `textContent` set content (with both, `text` is an attribute)
 //   * `className` sets `class` (with both, both are attributes)
@@ -274,11 +275,13 @@ nf.style$ = (css, where = document) => {
 //   * accepts `dataset.fooBar` as `data-foo-bar`
 //   * `nodeName` sets the element name, not an attribute
 nf.$html = (...pairs) => {
-  const name = typeof pairs[0] == 'string' ? pairs.shift() : pairs[0]?.nodeName;
+  let name = typeof pairs[0] == 'string' ? pairs.shift() : pairs[0]?.nodeName;
   if (name == undefined) {
     throw new TypeError(`No node name in nf.$html(${ JSON.stringify(pairs) })`);
   }
-  let elem = document.createElement(name);
+  name = name.split('.');
+  let elem = document.createElement(name[0]);
+  elem.classList.add(...name.slice(1));
 
   if (! (pairs[0] instanceof Node) && typeof pairs[0] == 'object') { // attrs
     const attributes = pairs.shift();
@@ -304,14 +307,14 @@ nf.$html = (...pairs) => {
 
   for (let p = 0; p < pairs.length; p++) {	// create optional children
     if (typeof pairs[p] == 'string') {
-      let name = pairs[p];
+      let child = pairs[p];
       let attributes = {}
       let next = pairs[p + 1];
       if (! (next instanceof Node) && typeof next == 'object') {
         attributes = next;
         p++;
       }
-      elem.append(nf.$html(name, attributes));
+      elem.append(nf.$html(child, attributes));
     } else if (pairs[p] instanceof Node) {	// accept a node as-is
       elem.append(pairs[p]);
     } else { elem.append(nf.$html(pairs[p])); }

@@ -20,7 +20,7 @@
 }
 // done with sanity check }}}
 
-nf.addon.dialog = { version:'0.2.20250118.0',
+nf.addon.dialog = { version:'0.2.20250529.0',
   origin:document.currentScript?.src ?? 'nofus-dialog.js' }
 
 
@@ -51,7 +51,7 @@ nf.dialog = class {
     // Everything goes in here so we have proper borders
     let content = root.appendChild($html('div', { class:'nfDialogContent' }));
     let closeout = content.appendChild($html('button', { text:'×',
-      autofocus:true, type:'button', class:'nfDialogClose' }));
+      type:'button', class:'nfDialogClose' }));
     closeout.addEventListener('click', () => { root.close(); });
     content.append(this.#head, this.#tabBar);
     this.title(title);
@@ -112,7 +112,7 @@ nf.dialog = class {
     return this.root.style.getPropertyValue(which);
   }
 
-  root = $html('dialog', { class:'nfDialog' });
+  root = $html('dialog', { class:'nfDialog', autofocus:'true' });
   #head = $html('h2', { class:'nfDialogHead' }, 'span');
   #title = location.host || location.href;
   #tabBar = $html('div', { class:'nfDialogTabBar' });

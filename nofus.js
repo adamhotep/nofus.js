@@ -19,7 +19,7 @@
 // These cloned items are listed in nf.aliases
 const nf = { GM:{}, addon:{}, alias:{} }
 
-nf.version = '0.7.20250818.0';
+nf.version = '0.8.20251215.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -189,31 +189,43 @@ nf.alias.qa$ = nf.queryAll$;
 // This runs upon setting. If you don't want that, set options = {}.
 // The options are also fed to the MutationObserver observe() function, see
 // https://developer.mozilla.org/docs/Web/API/MutationObserver/observe#options
-// TODO: Does this need special parsing for frames & iframes? wfke has it:
-//       https://gist.github.com/adamhotep/7c9068f2196326ab79145ae308b68f9e
 nf.wait$ = (css, action, scope = document, options = { now:1 }) => {
   // option vetting
   const die = (obj, msg) => {
-    throw new TypeError("nf.wait$: `" + obj + "` " + msg);
+    throw new TypeError("nf.wait$: `" + nf.stringify(obj) + "` " + msg);
   }
   try { nf.query$(css, nf.$html('p')) }
   catch(e) { die(css, "is not a valid selector") }
   if (typeof action != 'function') { die(action, "is not a function") }
-  if (! scope?.querySelector) {	// invalid scope
+  if (! scope?.querySelectorAll) {	// invalid scope
     // if scope is actually the options
-    if (typeof scope == 'object' && (nf.objKeys(scope) == 0 || scope.childList
-    || scope.now != undefined || scope.attributes || scope.characterData)) {
-      const tmp = options?.querySelector ? options : document;	// swap?
+    if (typeof scope == 'object' && (nf.objKeys(scope) == 0
+    || scope.now != undefined || scope.frames != undefined
+    || scope.attributes || scope.characterData || scope.childList)) {
+      const tmp = options?.querySelectorAll ? options : document;	// swap?
       options = scope;
       scope = tmp;
-    } else { die(scope, "must be an HTMLDocument or HTMLElement") }
+    } else {
+      die(scope, "must have a querySelectorAll method "
+        + "(HTMLDocument, HTMLElement, ShadowRoot, etc.)");
+    }
   }
-  // default options if given empty or just 'now' (TypeErrors come later)
-  const k = nf.objKeys(options);
-  if (k == 0 || k == 1 && options.now != undefined) {
+  // Frames don't have children, they have their own HTMLDocument objects
+  if (scope.childElementCount == 0 && scope.contentDocument?.querySelectorAll) {
+    scope = scope.contentDocument;
+  }
+  // Default options (TypeErrors come later)
+  if (!options.childList && !options.subtree && !options.attributes) {
     options.childList = options.subtree = options.attributes = 1 // defaults
   }
   // end vetting
+
+  // Recursively monitor frames if so directed (0 = never, true = infinite)
+  if (options.frames) {
+    if (typeof options.frames == 'number') options.frames--;
+    nf.queryAll$(options.frameSelector ?? 'frame, iframe', scope)
+      .forEach(frame => { nf.wait$(css, action, frame, options); });
+  }
 
   // Been-there mark. Anonymous functions are blank, so we hash their code.
   const actionMarker = (action.name || nf.hash(action.toString(), 36))
@@ -239,7 +251,7 @@ nf.wait$ = (css, action, scope = document, options = { now:1 }) => {
 
   observer.observe(scope, options);  // our options are MutationObserver options
 
-  if (options.now) { run() }
+  if (options.now ?? 1) { run() }
 
   return observer;
 

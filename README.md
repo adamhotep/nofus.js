@@ -131,19 +131,34 @@ This wraps `document.querySelector`, `document.querySelectorAll`, `element.query
 
 ### nf.wait$
 
-Wait for HTML elements matching given [CSS selector](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_selectors), then run the given function on them.
+Wait for HTML elements matching given
+[CSS selector](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_selectors),
+then run the given function on them.
 
 Usage: `nf.wait$(css, action, [scope], [options])`
 
-* css (string): A [CSS selector](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_selectors) like `a` or even `article > a[href^="http://example.com/"]`
+* css (string): A
+  [CSS selector](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_selectors)
+  like `a` or even `article > a[href^="http://example.com/"]`
 * action (function): A function to be run on matching elements as they appear
-* scope (HTMLElement): An optional HTML element (or document) to limit the search to (defaults to `document`)
-* options (object): MutationObserver observe() function [options](https://developer.mozilla.org/docs/Web/API/MutationObserver/observe#options), plus one just for us.
+* scope (Node): A DOM node with a `querySelectorAll` method
+  (such as an HTMLElement, HTMLDocument, or ShadowRoot) to limit the search to
+  (defaults to `document`)
+* options (object): MutationObserver observe() function
+  [options](https://developer.mozilla.org/docs/Web/API/MutationObserver/observe#options)
+  with some changed defaults and some custom items:
+  * `frames`: Nest queries to frames within the scope to this depth
+    (0 by default, negatives and non-numbers like `true` recurse infinitely)
+  * `frameSelector`: CSS selector for frames when `frames` > 0
+    (`frame, iframe` by default)
   * `now`: Trigger upon setting this up (on by default)
-  * `childList`: Trigger on changes to the scope's child element list (on by default)
+  * `childList`: Trigger on changes to the scope's child element list
+    (on by default)
   * `subtree`: Trigger on changes to the scope's subtree (on by default)
-  * `attributes`: Trigger on changes to attributes within the scope (on by default)
-* Returns the MutationObserver object so you can do `w = nf.wait$(…)` and then optionally disable it later with `w.disconnect()`
+  * `attributes`: Trigger on changes to attributes within the scope
+    (on by default)
+* Returns the MutationObserver object so you can do `w = nf.wait$(…)`
+  and then optionally disable it later with `w.disconnect()`
 
 #### w$
 

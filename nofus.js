@@ -19,7 +19,7 @@
 // These cloned items are listed in nf.aliases
 const nf = { GM:{}, addon:{}, alias:{} }
 
-nf.version = '0.8.20251215.0';
+nf.version = '0.8.20260513.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -293,7 +293,7 @@ nf.$html = (...pairs) => {
   }
   name = name.split('.');
   let elem = document.createElement(name[0]);
-  elem.classList.add(...name.slice(1));
+  if (name.length > 1) elem.classList.add(...name.slice(1));
 
   if (! (pairs[0] instanceof Node) && typeof pairs[0] == 'object') { // attrs
     const attributes = pairs.shift();

@@ -19,7 +19,7 @@
 // These cloned items are listed in nf.aliases
 const nf = { GM:{}, addon:{}, alias:{} }
 
-nf.version = '0.8.20260513.0';
+nf.version = '0.8.20260525.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -260,8 +260,8 @@ nf.alias.w$ = nf.wait$;
 
 
 // Add to or else make and insert a new CSS <style> element
-// nf.style$(string css, [HTMLDocument|HTMLElement|HTMLStyleElement|XMLDocument where]) -> HTMLStyleElement	{{{
-nf.style$ = (css, where = document) => {
+// nf.style$([string css], [HTMLDocument|HTMLElement|HTMLStyleElement|XMLDocument where]) -> HTMLStyleElement	{{{
+nf.style$ = (css = '', where = document) => {
   if (where instanceof HTMLStyleElement) {
     where.textContent += css;
     return where;

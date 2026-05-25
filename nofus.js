@@ -19,7 +19,7 @@
 // These cloned items are listed in nf.aliases
 const nf = { GM:{}, addon:{}, alias:{} }
 
-nf.version = '0.8.20260525.0';
+nf.version = '0.9.20260525.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -279,7 +279,7 @@ nf.style$ = (css = '', where = document) => {
 // NOTE: attributes are HTML, not JavaScript (they were JS in nofus.js < 0.5):
 // * Accepts HTML elements as children
 // * nodeName is actually optional if attributes.nodeName exists
-// * nodeName can be dotted to denote classes: `div.center.nobr` has two classes
+// * nodeName denote id and classes, like `div#navbar.center.nobr`
 // * The `attributes` object sets HTML attributes except as follows:
 //   * `text` & `textContent` set content (with both, `text` is an attribute)
 //   * `className` sets `class` (with both, both are attributes)
@@ -291,9 +291,16 @@ nf.$html = (...pairs) => {
   if (name == undefined) {
     throw new TypeError(`No node name in nf.$html(${ JSON.stringify(pairs) })`);
   }
+  let id_matcher = /#\w[^#\s:.]*/g;	// (slightly stricter than HTML5)
+  let id = name.match(id_matcher);
+  if (id) {
+    id = id[0].substr(1);
+    name = name.replace(id_matcher, '');
+  }
   name = name.split('.');
   let elem = document.createElement(name[0]);
   if (name.length > 1) elem.classList.add(...name.slice(1));
+  if (id) elem.id = id;
 
   if (! (pairs[0] instanceof Node) && typeof pairs[0] == 'object') { // attrs
     const attributes = pairs.shift();

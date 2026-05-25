@@ -20,7 +20,7 @@
 }
 // done with sanity check }}}
 
-nf.addon.dialog = { version:'0.2.20250529.0',
+nf.addon.dialog = { version:'0.3.20260525.0',
   origin:document.currentScript?.src ?? 'nofus-dialog.js' }
 
 
@@ -49,9 +49,9 @@ nf.dialog = class {
     }
 
     // Everything goes in here so we have proper borders
-    let content = root.appendChild($html('div', { class:'nfDialogContent' }));
-    let closeout = content.appendChild($html('button', { text:'×',
-      type:'button', class:'nfDialogClose' }));
+    let content = root.appendChild($html('div.nfDialogContent'));
+    let closeout = content.appendChild($html('button.nfDialogClose',
+      { text:'×', type:'button' }));
     closeout.addEventListener('click', () => { root.close(); });
     content.append(this.#head, this.#tabBar);
     this.title(title);
@@ -112,11 +112,11 @@ nf.dialog = class {
     return this.root.style.getPropertyValue(which);
   }
 
-  root = $html('dialog', { class:'nfDialog', autofocus:'true' });
-  #head = $html('h2', { class:'nfDialogHead' }, 'span');
+  root = $html('dialog.nfDialog', { autofocus:'true' });
+  #head = $html('h2.nfDialogHead', 'span');
   #title = location.host || location.href;
-  #tabBar = $html('div', { class:'nfDialogTabBar' });
-  body = $html('div', { class:'nfDialogBody' });
+  #tabBar = $html('div.nfDialogTabBar');
+  body = $html('div.nfDialogBody');
 
   // Close the dialog
   // .close()
@@ -159,11 +159,11 @@ nf.dialog = class {
   tab(title = `Tab ${this.tabs.length + 1}`, ...items) {
     let tabs = this.tabs;
     let id = `nfDialogTab-${tabs.length}-${nf.hash(this.title() + title, 36)}`;
-    let radio = this.appendChild($html('input',
-      { type:'radio', name:'nfDialogTab', id:id }));
-    let body = this.appendChild($html('div', { class:'nfDialogTabBody' }));
-    body.tab = this.#tabBar.appendChild($html('label',
-      { text:title, class:'nfDialogTab', for:id }));
+    let radio = this.appendChild($html(`input#${id}`,
+      { type:'radio', name:'nfDialogTab' }));
+    let body = this.appendChild($html('div.nfDialogTabBody'));
+    body.tab = this.#tabBar.appendChild($html('label.nfDialogTab',
+      { text:title, for:id }));
     body.focus = () => {
       radio.checked = true;
       tabs.forEach(t => t != body && t.tab.classList.remove('active'));
@@ -174,6 +174,13 @@ nf.dialog = class {
     radio.addEventListener('change', body.focus);
     if (items) body.append(...items);
     return body;
+  }	// end of .tab() }}}
+
+  // Add a spacer between tabs (to allow left-aligned and right-aligned tabs)
+  // .tabSpacer()
+  tabSpacer() {
+    this.#tabBar.append($html('span.nfDialogTabSpacer',
+      { 'aria-hidden':'true' }));
   }
 
   #style = nf.style$(`    /* nf.dialog stylesheet */
@@ -203,11 +210,11 @@ nf.dialog = class {
     .nfDialogBody input[name="nfDialogTab"]:not(:checked) + div,
     .nfDialogBody input[name="nfDialogTab"] { display:none; }
     .nfDialog .nfDialogTabBar:has(> label) {
-      padding:0 0 calc(.5ex - 1px); margin-top:.5ex;
-      border-bottom:1px solid var(--bg2);
+      border-bottom:1px solid var(--bg2); display:flex; align-items:center;
     }
+    .nfDialog .nfDialogTabSpacer { flex:1 1 auto; }
     .nfDialog .nfDialogTab {
-      padding:.5ex; margin:.5ex; border-radius:.5ex .5ex 0 0;
+      padding:.5ex; margin:.5ex .5ex -1px .5ex; border-radius:.5ex .5ex 0 0;
       border:1px solid var(--bg); background:var(--bg2);
       border-bottom-color:transparent; user-select:none;
     }

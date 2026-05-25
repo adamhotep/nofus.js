@@ -538,6 +538,13 @@ Usage: `.tab([title], [content…])`
   * `body.focus()`: Switch to the tab
 
 
+#### .tabSpacer
+
+Add a spacer between tabs, allowing for left-aligned and right-aligned tabs.
+
+Usage: `.tabSpacer()`
+
+
 #### .append
 
 Append one or more elements or text (as paragraphs) to the dialog body.

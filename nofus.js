@@ -710,6 +710,19 @@ nf.color2hex = (color, format = 'hex') => {
 }	// end of color2hex()	}}}
 
 
+// Convert any CSS-valid color black or white based on best contrast
+// Preserves light-dark() notation for proper theme toggling
+// nf.colorContrast(string color, [string format]) -> string|array	{{{
+nf.colorContrast = (color, format = 'hex') => {
+  // https://mastodon.social/@firefoxwebdevs/116403898019901689
+  // https://css-tricks.com/approximating-contrast-color-with-other-css-features
+  const inv = c => nf.color2hex(`oklch(from ${c} round(1.21 - L) 0 0)`, format);
+  let l_d = color.match(/^light-dark\(([^,()]+),([^,()]+)\)/);
+  if (l_d) return `light-dark(${inv(l_d[1])}, ${inv[l_d[2]]})`;
+  return inv(color);
+}	// end of colorContrast()	}}}
+
+
 // Count the direct ("own") keys of an object or else return undefined
 // nf.objKeys(object obj) -> number | undefined	{{{
 // via https://stackoverflow.com/a/32108184/519360, adapted to count

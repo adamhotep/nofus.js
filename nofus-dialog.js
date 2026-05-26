@@ -12,7 +12,7 @@
 
 // Sanity check: Ensure nofus.js is already loaded {{{
 {
-  const minimumVersion = '0.7';	// minimum nofus.js version
+  const minimumVersion = '0.9';	// minimum nofus.js version
   if (typeof nf != 'object' || typeof nf.compareVersions != 'function'
   || !nf.compareVersions(nf.version, minimumVersion, '>='))
     throw new ReferenceError(`Load nofus.js version ${minimumVersion}+ first!`);
@@ -87,9 +87,9 @@ nf.dialog = class {
   setColors(background, background2, foreground) {
     nf.wait$('body', e => {
       let [r, g, b] = nf.color2hex(background, 'rgb');
+      if (!foreground) foreground = nf.colorContrast(background);
+      let glow = nf.colorContrast(foreground);
       let lum = r / 1199 + g / 357 + b / 3532;	// luminance (0-1)
-      let glow = lum > .63 ? "#fff" : "#000";
-      foreground ??= lum > .63 ? "#000" : "#fff";
       lum = lum > .19 ? -.25 : .25;
       // defaults to a the background but a little closer to the foreground
       background2 ??=

@@ -405,6 +405,17 @@ Usage: `nf.color2hex(color, [format])`
 * Returns either a string or an array of numbers
 
 
+### nf.colorContrast
+
+Find proper contrasting color for a given color, respecting `light-dark()` using [this APCA approximation for contrast-color](https://css-tricks.com/approximating-contrast-color-with-other-css-features/).
+
+Usage: `nf.colorContrast(color, [format])`
+
+* color (string): Same as for `nf.color2hex`
+* format (string): Same as for `nf.color2hex`
+* Returns either a string or an array of numbers
+
+
 ### nf.objKeys
 
 Count the direct ("own") keys of an object.

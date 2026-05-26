@@ -19,7 +19,7 @@
 // These cloned items are listed in nf.aliases
 const nf = { GM:{}, addon:{}, alias:{} }
 
-nf.version = '0.9.20260525.0';
+nf.version = '0.9.20260525.1';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -718,7 +718,7 @@ nf.colorContrast = (color, format = 'hex') => {
   // https://css-tricks.com/approximating-contrast-color-with-other-css-features
   const inv = c => nf.color2hex(`oklch(from ${c} round(1.21 - L) 0 0)`, format);
   let l_d = color.match(/^light-dark\(([^,()]+),([^,()]+)\)/);
-  if (l_d) return `light-dark(${inv(l_d[1])}, ${inv[l_d[2]]})`;
+  if (l_d) return `light-dark(${inv(l_d[1])}, ${inv(l_d[2])})`;
   return inv(color);
 }	// end of colorContrast()	}}}
 

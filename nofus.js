@@ -19,7 +19,7 @@
 // These cloned items are listed in nf.aliases
 const nf = { GM:{}, addon:{}, alias:{} }
 
-nf.version = '0.9.20260525.1';
+nf.version = '0.10.20260529.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -274,9 +274,11 @@ nf.style$ = (css = '', where = document) => {
 }	// end nf.style$()	}}}
 
 
-// Make an HTML node. Children are set with subsequent attr or node+attr pairs.
-// nf.$html(string nodeName, [object attributes], [Node child] ...) -> HTMLElement	{{{
+// Make a node. Children are set with subsequent attr or [ns+]node+attr set.
+// nf.$html([string namespaceURI], string nodeName, [object attributes], [Node child] ...) -> HTMLElement	{{{
 // NOTE: attributes are HTML, not JavaScript (they were JS in nofus.js < 0.5):
+// * An optional first parameter for the namespace URI allows SVG, MathML, etc.
+//   as per the namespaceURI parameter to document.createElementNS
 // * Accepts HTML elements as children
 // * nodeName is actually optional if attributes.nodeName exists
 // * nodeName denote id and classes, like `div#navbar.center.nobr`
@@ -286,10 +288,15 @@ nf.style$ = (css = '', where = document) => {
 //   * `value` & `checked` set Javascript properties, not HTML attributes
 //   * accepts `dataset.fooBar` as `data-foo-bar`
 //   * `nodeName` sets the element name, not an attribute
-nf.$html = (...pairs) => {
-  let name = typeof pairs[0] == 'string' ? pairs.shift() : pairs[0]?.nodeName;
+nf.$html = (...set) => {
+  let name = typeof set[0] == 'string' ? set.shift() : set[0]?.nodeName;
+  let namespaceURI = 'http://www.w3.org/1999/xhtml';
+  if (name?.match(/^https?:\/\/\w/i)) {
+    namespaceURI = name;
+    name = typeof set[0] == 'string' ? set.shift() : set[0]?.nodeName;
+  }
   if (name == undefined) {
-    throw new TypeError(`No node name in nf.$html(${ JSON.stringify(pairs) })`);
+    throw new TypeError(`No node name in nf.$html(${ JSON.stringify(set) })`);
   }
   let id_matcher = /#\w[^#\s:.]*/g;	// (slightly stricter than HTML5)
   let id = name.match(id_matcher);
@@ -298,12 +305,12 @@ nf.$html = (...pairs) => {
     name = name.replace(id_matcher, '');
   }
   name = name.split('.');
-  let elem = document.createElement(name[0]);
+  let elem = document.createElementNS(namespaceURI, name[0]);
   if (name.length > 1) elem.classList.add(...name.slice(1));
   if (id) elem.id = id;
 
-  if (! (pairs[0] instanceof Node) && typeof pairs[0] == 'object') { // attrs
-    const attributes = pairs.shift();
+  if (! (set[0] instanceof Node) && typeof set[0] == 'object') { // attrs
+    const attributes = set.shift();
     let isKey = (key, a, b) => {
       return key == a || attributes[a] == undefined && key == b;
     }
@@ -324,19 +331,24 @@ nf.$html = (...pairs) => {
     nf.warn("nf.$html() element has non-unique id `%s`:\n%o", elem.id, elem);
   }
 
-  for (let p = 0; p < pairs.length; p++) {	// create optional children
-    if (typeof pairs[p] == 'string') {
-      let child = pairs[p];
+  for (let s = 0; s < set.length; s++) {	// create optional children
+    let ns = namespaceURI;	// inherit from the parent, not siblings
+    if (typeof set[s] == 'string') {
+      if (set[s].match(/^https?:\/\/\w/i)) {
+        ns = set[s];
+        s++;	// yeah, yeah; it's not "set" anymore
+      }
+      let child = set[s];
       let attributes = {}
-      let next = pairs[p + 1];
+      let next = set[s + 1];
       if (! (next instanceof Node) && typeof next == 'object') {
         attributes = next;
-        p++;
+        s++;
       }
-      elem.append(nf.$html(child, attributes));
-    } else if (pairs[p] instanceof Node) {	// accept a node as-is
-      elem.append(pairs[p]);
-    } else { elem.append(nf.$html(pairs[p])); }
+      elem.append(nf.$html(ns, child, attributes));
+    } else if (set[s] instanceof Node) {	// accept a node as-is
+      elem.append(set[s]);
+    } else { elem.append(nf.$html(set[s])); }
   }
 
   return elem;

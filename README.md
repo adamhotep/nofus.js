@@ -177,11 +177,13 @@ Usage: `nf.style$([css], [where])`
 
 ### nf.$html
 
-Make an HTML node with attributes and children.
+Make an HTML node (or other node by namespace) with optional attributes and children.
 
-Usage: `nf.$html(nodeName[#id][.className…], [attributes], [child] …)`
-Usage: `nf.$html(object attributes …)`
+Usage: `nf.$html([namespaceURI], nodeName[#id][.className…], [attributes], [child] …)`
+Usage: `nf.$html([namespaceURI], object attributes …)`
 
+* namespaceURI (string): The element namespace URI specification link
+  (defaults to `http://www.w3.org/1999/xhtml` to make HTML nodes)
 * nodeName (string): The tag name of the HTML element to create
 * id (string): An easier way to set the id
 * className (string): nodeName is split on dots to add classes

@@ -12,7 +12,7 @@ Convenience aliases (shorthand functions outside the `nf` object) are also loade
 
 ### nf.alias
 
-This is an object whose keys enumerate the Nofus aliases, such as `w$`, which maps to `nf.wait$`. This object is not meant to be manipulated.
+This is an object whose keys enumerate the Nofus aliases, such as `q$`, which maps to `nf.query$`. This object is not meant to be manipulated.
 
 ### nf_config.alias
 
@@ -152,13 +152,17 @@ Usage: `nf.wait$(css, action, [scope], [options])`
   * `frameSelector`: CSS selector for frames when `frames` > 0
     (`frame, iframe` by default)
   * `now`: Trigger upon setting this up (on by default)
+  * `once`: Run upon setting this up and then disconnect (stop waiting)
   * `childList`: Trigger on changes to the scope's child element list
     (on by default)
   * `subtree`: Trigger on changes to the scope's subtree (on by default)
   * `attributes`: Trigger on changes to attributes within the scope
     (on by default)
-* Returns the MutationObserver object so you can do `w = nf.wait$(…)`
-  and then optionally disable it later with `w.disconnect()`
+* Returns the MutationObserver object
+  (with a custom `count` property that increments with each action function
+  that triggered and ran without errors)
+  so you can do `w = nf.wait$(…)`
+  and then optionally disable it later with `w.disconnect()`.
 
 #### w$
 

@@ -19,7 +19,7 @@
 // These cloned items are listed in nf.aliases
 const nf = { GM:{}, addon:{}, alias:{} }
 
-nf.version = '0.10.20260529.0';
+nf.version = '0.11.20260924.0';
 
 
 // Version comparison. Works for pretty most dotted strings, Semver compatible.
@@ -162,20 +162,11 @@ nf.GM.getMeta = (key, matcher) => {
 // q$(css, elem, 1)  =  elem.querySelectorAll(css)
 // q$(css, 1, elem)  =  elem.querySelectorAll(css)
 nf.query$ = (css, scope = document, all) => {
-  let q = 'querySelector';
-  if (typeof scope[q] != 'function') {
-    if (all && typeof all[q] == 'function') {	// q$(css, all, scope)
-      const tmp = scope;
-      scope = all; all = tmp;
-    } else {					// q$(css, all)
-      all = scope;
-      scope = document;
-    }
-  }
-  if (all) q += 'All';
-  return scope[q](css);
+  const hasQS = elem => typeof elem?.querySelector == 'function';
+  if (! hasQS(scope)) [ scope, all ] = [ hasQS(all) ? all : document , scope ];
+  return scope[ 'querySelector' + (all ? 'All' : '') ](css);
 }
-nf.queryAll$ = (css, scope) => { return nf.query$(css, scope, 1) }
+nf.queryAll$ = (css, scope) => nf.query$(css, scope, 1);
 // end nf.query$()	}}}
 nf.alias.q$ = nf.query$;
 nf.alias.qa$ = nf.queryAll$;
@@ -184,9 +175,12 @@ nf.alias.qa$ = nf.queryAll$;
 // Wait for HTML elements matching CSS, run given function on them upon loading
 // nf.wait$(string css, function action, [HTMLElement scope], [object options]) -> MutationObserver	{{{
 // Trigger `action(element)` for each match of css even when dynamically loaded.
-// This returns the observer so you can do `w = nf.wait$(...)`
+// This returns the MutationObserver so you can do `w = nf.wait$(...)`
 // and you can run `w.disconnect()` to disable it later.
-// This runs upon setting. If you don't want that, set options = {}.
+// The MutationObserver has a new `count` property denoting successful actions.
+// This runs upon setting. If you don't want that, set options = `{}`.
+// Option `{ once:1 }` will run and then disconnect the MutationObserver.
+// Use e.g. `{ frameSelector:'frame' }` to limit frames to `<frame>` elements.
 // The options are also fed to the MutationObserver observe() function, see
 // https://developer.mozilla.org/docs/Web/API/MutationObserver/observe#options
 nf.wait$ = (css, action, scope = document, options = { now:1 }) => {
@@ -194,24 +188,23 @@ nf.wait$ = (css, action, scope = document, options = { now:1 }) => {
   const die = (obj, msg) => {
     throw new TypeError("nf.wait$: `" + nf.stringify(obj) + "` " + msg);
   }
+  const hasQS = elem => typeof elem?.querySelectorAll == 'function';
   try { nf.query$(css, nf.$html('p')) }
   catch(e) { die(css, "is not a valid selector") }
   if (typeof action != 'function') { die(action, "is not a function") }
-  if (! scope?.querySelectorAll) {	// invalid scope
-    // if scope is actually the options
-    if (typeof scope == 'object' && (nf.objKeys(scope) == 0
-    || scope.now != undefined || scope.frames != undefined
+  if (! hasQS(scope)) {	// invalid scope. if it's the options, swap them
+    if (typeof scope == 'object' && (nf.objEmpty(scope)
+    || nf.split("now once frames frameSelector")
+      .some(a => scope[a] != undefined)
     || scope.attributes || scope.characterData || scope.childList)) {
-      const tmp = options?.querySelectorAll ? options : document;	// swap?
-      options = scope;
-      scope = tmp;
+      [ scope, options ] = [ hasQS(options) ? options : document, scope ];
     } else {
       die(scope, "must have a querySelectorAll method "
         + "(HTMLDocument, HTMLElement, ShadowRoot, etc.)");
     }
   }
   // Frames don't have children, they have their own HTMLDocument objects
-  if (scope.childElementCount == 0 && scope.contentDocument?.querySelectorAll) {
+  if (scope.childElementCount == 0 && hasQS(scope.contentDocument)) {
     scope = scope.contentDocument;
   }
   // Default options (TypeErrors come later)
@@ -221,24 +214,30 @@ nf.wait$ = (css, action, scope = document, options = { now:1 }) => {
   // end vetting
 
   // Recursively monitor frames if so directed (0 = never, true = infinite)
-  if (options.frames) {
-    if (typeof options.frames == 'number') options.frames--;
+  while (options.frames) {
+    if (typeof options.frames == 'number') {
+      options.frames--;
+      if (options.frames < 0) { options.frames = 0; break; }
+    }
     nf.queryAll$(options.frameSelector ?? 'frame, iframe', scope)
       .forEach(frame => { nf.wait$(css, action, frame, options); });
+    break;
   }
 
   // Been-there mark. Anonymous functions are blank, so we hash their code.
   const actionMarker = (action.name || nf.hash(action.toString(), 36))
     + `@${nf.hash(css, 36)}$${parseInt(Math.random() * 36**6).toString(36)}`;
 
+  let observer;
+
   const run = () => {
-    nf.query$(css, scope, true)?.forEach(elem => {
+    nf.queryAll$(css, scope)?.forEach(elem => {
       // TODO: move actionMarker back to a spaced attribute to avoid with CSS?
       // That means modifying the CSS (risky!). Justify performance need first.
       if (elem.nf_found && elem.nf_found[actionMarker]) { return } // been-there
       if (!elem.nf_found) { elem.nf_found = {} }
       elem.nf_found[actionMarker] = true;	// prevent loops even on errors
-      try { action(elem) }
+      try { action(elem); observer.count++ }
       catch (error) {
         const name = action.name ? '`' + action.name + '`' : "action";
         // we're NOT using nf.error because its timestamps won't cluster well
@@ -247,11 +246,13 @@ nf.wait$ = (css, action, scope = document, options = { now:1 }) => {
     });
   }
 
-  const observer = new MutationObserver(run);
+  observer = new MutationObserver(run);
+  observer.count = 0;	// custom property, not so clean but very helpful
 
   observer.observe(scope, options);  // our options are MutationObserver options
 
-  if (options.now ?? 1) { run() }
+  if (options.once || (options.now ?? 1)) { run() }
+  if (options.once) { observer.disconnect(); }
 
   return observer;
 
@@ -432,12 +433,15 @@ nf.regex = nf.regExp = (pattern, flags = '') => {
 
 // Split a string by its spacing (or another separator) into an array
 // nf.split(str string, [RegExp|string sep], [number limit]) -> array	{{{
-nf.split = (str, sep = /\s+/, limit) => {
-  if (typeof sep == 'number' && limit == undefined) { // given only str & limit
-    limit = sep;
-    sep = /\s+/;
+// Advantages over String.prototype.split(): better at casting into strings,
+// sep is optional, but if you can't split on bare a number > 0 without it:
+// nf.split("hey1there", 1)  is  nf.split("hey1there", /\s+/, 1)
+// nf.split("hey1there", "1")  and  nf.split("hey1there", 1, -1)  prevent that
+nf.split = (str, sep, limit) => {
+  if (typeof sep == 'number' && sep > 0 && typeof limit != 'number') {
+    [ sep, limit ] = [ limit, sep ];
   }
-  let a = nf.stringify(str).split(sep, limit);
+  let a = nf.stringify(str).split(sep ?? /\s+/, limit);
   if (a[0] == '') a.shift();
   if (a[a.length - 1] == '') a.pop();
   return a;
@@ -596,7 +600,7 @@ nf.sec2units = (seconds = 0) => {
 // Convert colon-delimited time string (Y:D:H:M:S) to seconds
 // nf.time2sec(string time) -> number	{{{
 nf.time2sec = time => {
-  const parts = time.toString().split(':').reverse();
+  const parts = nf.split(time, ':').reverse();
   let seconds = 0;
   if (parts.length > 5) { throw new SyntaxError("Too many parts in time!"); }
   if (parts.length == 5) { seconds += y * parts[4]; }
@@ -691,6 +695,7 @@ nf.hash_hex = (str, seed) => {
 
 // Convert any CSS-valid color to #RRGGBB[AA] or (red, green, blue, [alpha])
 // WARNING: this uses the document body, which may not yet be loaded!
+// TODO: add scope? Would that help with alpha and/or the body race condition?
 // nf.color2hex(string color, [string format]) -> string|array	{{{
 // Formats are as follows:
 // * 'rgb' outputs an array of red, green, blue (all 0-255), and alpha (0-1)
@@ -748,7 +753,7 @@ nf.objKeys = obj => {
 }	// end nf.objKeys()	}}}
 // Determine if something is an empty object  (obj == {}) does NOT work)
 // nf.objEmpty(object obj) -> boolean	{{{
-nf.objEmpty = obj => { return nf.objKeys(obj) == 0 }
+nf.objEmpty = obj => nf.objKeys(obj) == 0;
 // end of nf.objEmpty() }}}
 
 // Simple sleep function, either async or else wrapping a function
